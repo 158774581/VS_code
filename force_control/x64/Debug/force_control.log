@@ -1,0 +1,26 @@
+﻿  motion_planning_non_zero_main.c
+  motion_planning_3rd.c
+  conveyor_tracking_main.c
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(142): warning C4244: “函数”: 从“Uint64”转换到“unsigned int”，可能丢失数据
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(135): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(167): warning C4244: “=”: 从“int16”转换到“int8”，可能丢失数据
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(200): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(201): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(360): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(361): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(362): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(363): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(364): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(365): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+  正在生成代码...
+  force_control.vcxproj -> C:\Users\hqi\Documents\Visual Studio 2017\Projects\robot_coordinate_system20181017\x64\Debug\matrix_pallas.exe
+  force_control.vcxproj -> C:\Users\hqi\Documents\Visual Studio 2017\Projects\robot_coordinate_system20181017\x64\Debug\matrix_pallas.pdb (Partial PDB)

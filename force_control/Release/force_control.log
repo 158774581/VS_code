@@ -1,0 +1,67 @@
+﻿  stdafx.c
+  cartesian_module.c
+cartesian_module.c(94): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  control_law.c
+  conveyor_tracking.c
+conveyor_tracking.c(719): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  conveyor_tracking_main.c
+conveyor_tracking_main.c(383): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  dynamic.c
+dynamic.c(186): warning C4010: 单行注释包含行继续符
+  DynamicModule.c
+  DynamicProfile.c
+DynamicProfile.c(46): warning C4047: “函数”:“matxx *”与“double (*)[8]”的间接级别不同
+DynamicProfile.c(46): warning C4024: “matxx_malloc”: 形参和实参 1 的类型不同
+DynamicProfile.c(47): warning C4047: “函数”:“matxx *”与“double (*)[8]”的间接级别不同
+DynamicProfile.c(47): warning C4024: “matxx_malloc”: 形参和实参 1 的类型不同
+DynamicProfile.c(48): warning C4047: “函数”:“matxx *”与“double (*)[8]”的间接级别不同
+DynamicProfile.c(48): warning C4024: “matxx_malloc”: 形参和实参 1 的类型不同
+DynamicProfile.c(49): warning C4047: “函数”:“matxx *”与“double (*)[8]”的间接级别不同
+DynamicProfile.c(49): warning C4024: “matxx_malloc”: 形参和实参 1 的类型不同
+DynamicProfile.c(50): warning C4047: “函数”:“matxx *”与“double (*)[8]”的间接级别不同
+DynamicProfile.c(50): warning C4024: “matxx_malloc”: 形参和实参 1 的类型不同
+DynamicProfile.c(51): warning C4047: “函数”:“matxx *”与“double (*)[8]”的间接级别不同
+DynamicProfile.c(51): warning C4024: “matxx_malloc”: 形参和实参 1 的类型不同
+DynamicProfile.c(52): warning C4047: “函数”:“matxx *”与“double (*)[8]”的间接级别不同
+DynamicProfile.c(52): warning C4024: “matxx_malloc”: 形参和实参 1 的类型不同
+DynamicProfile.c(57): warning C4028: 形参 1 与声明不同
+  dynamic2.c
+  dynamic_module.c
+  joint_module.c
+joint_module.c(167): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  kinematics.c
+kinematics.c(212): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  motion_planning_non_zero_main.c
+motion_planning_non_zero_main.c(49): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  robot_app.c
+robot_app.c(26): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  robot_config.c
+robot_config.c(91): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  robot_coordinate_system.c
+robot_coordinate_system.c(866): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  robot_coordinate_system_main.c
+robot_coordinate_system_main.c(138): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  dynamic_profile.c
+  lib_scara.c
+  dynamic_main.c
+  impedance_main.c
+  正在编译...
+  matrix.c
+matrix.c(1441): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  matrix_main.c
+matrix_main.c(399): warning C4101: “W”: 未引用的局部变量
+matrix_main.c(399): warning C4101: “V”: 未引用的局部变量
+matrix_main.c(399): warning C4101: “U”: 未引用的局部变量
+matrix_main.c(425): warning C4101: “y”: 未引用的局部变量
+  motion_planning_3rd.c
+  robot_device.c
+robot_device.c(107): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  robot_module.c
+robot_module.c(262): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  solver.c
+  torque_generator.c
+torque_generator.c(206): warning C4047: “函数”:“FILE *const ”与“int”的间接级别不同
+torque_generator.c(206): warning C4024: “fprintf”: 形参和实参 1 的类型不同
+torque_generator.c(45): warning C4101: “tmp”: 未引用的局部变量
+  trajectory_generator.c
+trajectory_generator.c(4808): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?

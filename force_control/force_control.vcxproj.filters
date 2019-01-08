@@ -1,0 +1,306 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="dynamic_module">
+      <UniqueIdentifier>{4c33e195-f26e-4605-bc71-1d99d49a0da7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\include">
+      <UniqueIdentifier>{b26d8ebd-d7c2-4310-8c91-1385ac449b97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\src">
+      <UniqueIdentifier>{06ecb96f-a44b-431e-a882-d4422785da5a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\control_law">
+      <UniqueIdentifier>{300bcbec-fac2-4c77-8941-52dd2d5f7a34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\control_law\include">
+      <UniqueIdentifier>{301c0cfd-cea0-4850-9e69-f479c008cf1c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\control_law\src">
+      <UniqueIdentifier>{85f4a112-72bc-4962-bbc8-7598ac19d2ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\dynamic_profile">
+      <UniqueIdentifier>{24cf7de7-7f3a-44fe-96f8-491ebd7c64dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\robot_dynamic">
+      <UniqueIdentifier>{b1d0abce-130a-44a2-aab7-def8c5d776d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\dynamic_profile\include">
+      <UniqueIdentifier>{0be6b899-0bd9-4e85-ba29-dd459b3d4743}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\dynamic_profile\src">
+      <UniqueIdentifier>{44f90f2e-8ff3-46c5-927c-445e087d0e2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\robot_dynamic\include">
+      <UniqueIdentifier>{94925f9f-93fe-4615-b555-5f99de5e5a74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\robot_dynamic\src">
+      <UniqueIdentifier>{38b10f78-d22c-409e-9ac7-85e2963d4171}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utility">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="math">
+      <UniqueIdentifier>{3d92e2f7-da0d-49e0-a5d5-d21c761853e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="math\include">
+      <UniqueIdentifier>{22c21dd4-e97e-4fe5-bc63-7d839a0386d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="math\src">
+      <UniqueIdentifier>{39d40773-9d75-491a-8e84-ea3775a04336}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\dynamic_profile\torque_generator">
+      <UniqueIdentifier>{3597fedd-338e-4959-b22a-aa268b3a8852}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\dynamic_profile\torque_generator\include">
+      <UniqueIdentifier>{4d390ebe-6efb-4a58-a2e4-d693a5e1615b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dynamic_module\dynamic_profile\torque_generator\src">
+      <UniqueIdentifier>{30f6f8fe-652b-47bc-84ac-2b57362c7eab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib_scara">
+      <UniqueIdentifier>{ba59235c-4caf-4924-a8ba-87d6dfedcf1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control">
+      <UniqueIdentifier>{5f814c84-3467-4734-b482-9dc95dd01716}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control\src">
+      <UniqueIdentifier>{837354c3-b237-41f5-89e5-a88bba6585c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control\include">
+      <UniqueIdentifier>{a10b75c5-b2ef-45c3-b247-78c403fed87f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule">
+      <UniqueIdentifier>{6ad74572-0476-4f7a-b446-af4fa58428d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule\include">
+      <UniqueIdentifier>{31ce7074-af98-4566-8fe1-24add43ddd4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule\src">
+      <UniqueIdentifier>{09e3c1a4-34a6-4182-b83c-7b81fb1b5986}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule\dynamic_profile">
+      <UniqueIdentifier>{f3cde9fe-5550-44b4-b8b7-761f8fb82e12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule\dynamic_profile\include">
+      <UniqueIdentifier>{26fbbe8b-379b-4008-8d3b-d105c8cca8bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule\dynamic_profile\src">
+      <UniqueIdentifier>{0f856453-2636-486e-9153-5e629752c672}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule\dynamic">
+      <UniqueIdentifier>{ce5bd421-41ee-4fdc-9b4e-49d4f240ee24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule\dynamic\include">
+      <UniqueIdentifier>{605e0de0-2925-4f2c-b227-cc5a3051d07c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DynamicModule\dynamic\src">
+      <UniqueIdentifier>{93274005-7955-4843-a887-00c5c44590bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control\conveyor_tracking">
+      <UniqueIdentifier>{e32ebe8a-64b5-4c1f-aa78-3a0412e7ebb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control\conveyor_tracking\include">
+      <UniqueIdentifier>{02aa0485-96b1-4410-b28f-7cbf98eab806}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control\conveyor_tracking\src">
+      <UniqueIdentifier>{06b0c51e-581e-4e2b-b111-7f3f7b70cb4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control\robot_coordinate_system">
+      <UniqueIdentifier>{68b14f75-4f39-42ab-8c23-5da284f26461}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control\robot_coordinate_system\include">
+      <UniqueIdentifier>{a0b95119-f55e-481a-b09f-062a7161a2a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="robot_control\robot_coordinate_system\src">
+      <UniqueIdentifier>{be4d7bee-0796-41ce-9758-9c8c4ac8848d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dynamic_module.h">
+      <Filter>dynamic_module\include</Filter>
+    </ClInclude>
+    <ClInclude Include="control_law.h">
+      <Filter>dynamic_module\control_law\include</Filter>
+    </ClInclude>
+    <ClInclude Include="dynamic_profile.h">
+      <Filter>dynamic_module\dynamic_profile\include</Filter>
+    </ClInclude>
+    <ClInclude Include="type_def.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="dynamic.h">
+      <Filter>dynamic_module\robot_dynamic\include</Filter>
+    </ClInclude>
+    <ClInclude Include="robot_ctl_utility.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="matrix.h">
+      <Filter>math\include</Filter>
+    </ClInclude>
+    <ClInclude Include="torque_generator.h">
+      <Filter>dynamic_module\dynamic_profile\torque_generator\include</Filter>
+    </ClInclude>
+    <ClInclude Include="cartesian_module.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="joint_module.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="kinematics.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="robot_config.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="robot_module.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="motion_planning_3rd.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="solver.h">
+      <Filter>math\include</Filter>
+    </ClInclude>
+    <ClInclude Include="lib_scara.h">
+      <Filter>lib_scara</Filter>
+    </ClInclude>
+    <ClInclude Include="trajectory_generator.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicProfile.h">
+      <Filter>DynamicModule\dynamic_profile\include</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicModule.h">
+      <Filter>DynamicModule\include</Filter>
+    </ClInclude>
+    <ClInclude Include="dynamic2.h">
+      <Filter>DynamicModule\dynamic\include</Filter>
+    </ClInclude>
+    <ClInclude Include="robot_coordinate_system.h">
+      <Filter>robot_control\robot_coordinate_system\include</Filter>
+    </ClInclude>
+    <ClInclude Include="conveyor_tracking.h">
+      <Filter>robot_control\conveyor_tracking\include</Filter>
+    </ClInclude>
+    <ClInclude Include="robot_app.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="robot_device.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="robot_mode.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="cartsian_module.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="matrix.c">
+      <Filter>math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="control_law.c">
+      <Filter>dynamic_module\control_law\src</Filter>
+    </ClCompile>
+    <ClCompile Include="torque_generator.c">
+      <Filter>dynamic_module\dynamic_profile\torque_generator\src</Filter>
+    </ClCompile>
+    <ClCompile Include="dynamic.c">
+      <Filter>dynamic_module\robot_dynamic\src</Filter>
+    </ClCompile>
+    <ClCompile Include="dynamic_module.c">
+      <Filter>dynamic_module\src</Filter>
+    </ClCompile>
+    <ClCompile Include="lib_scara.c">
+      <Filter>lib_scara</Filter>
+    </ClCompile>
+    <ClCompile Include="motion_planning_3rd.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="solver.c">
+      <Filter>math\src</Filter>
+    </ClCompile>
+    <ClCompile Include="dynamic_profile.c">
+      <Filter>dynamic_module\dynamic_profile\src</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicProfile.c">
+      <Filter>DynamicModule\dynamic_profile\src</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicModule.c">
+      <Filter>DynamicModule\src</Filter>
+    </ClCompile>
+    <ClCompile Include="dynamic2.c">
+      <Filter>DynamicModule\dynamic\src</Filter>
+    </ClCompile>
+    <ClCompile Include="matrix_main.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="dynamic_main.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="impedance_main.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="robot_coordinate_system_main.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="robot_coordinate_system.c">
+      <Filter>robot_control\robot_coordinate_system\src</Filter>
+    </ClCompile>
+    <ClCompile Include="conveyor_tracking.c">
+      <Filter>robot_control\conveyor_tracking\src</Filter>
+    </ClCompile>
+    <ClCompile Include="conveyor_tracking_main.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="robot_device.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="robot_app.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="robot_config.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="robot_module.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="kinematics.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="joint_module.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="trajectory_generator.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="cartesian_module.c">
+      <Filter>robot_control\src</Filter>
+    </ClCompile>
+    <ClCompile Include="motion_planning_non_zero_main.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

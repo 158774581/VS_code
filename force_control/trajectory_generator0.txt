@@ -1,0 +1,1855 @@
+#pragma once
+
+
+
+
+#include "stdafx.h"
+#include "type_def.h"
+#include "joint_module.h"
+#include "cartesian_module.h"
+#include "trajectory_generator.h"
+#include "math.h"
+#include "kinematics.h"
+#include "stdlib.h"
+#include "lib_scara.h"
+#include "robot_module.h"
+
+//extern int16 ScaraIK(cartesian_module * m_cart, joint_module* m_joint, kinematics* m_kine, robot_config_module* p_config, double* pose, double* joint);
+//extern int16 ScaraFK(cartesian_module * m_cart, joint_module* m_joint, kinematics* m_kine, robot_config_module* p_config, double* pose, double* joint);
+//extern int16 ScaraBasicIJ(cartesian_module * m_cart, joint_module* m_joint, kinematics* m_kine, robot_config_module* p_config, const double* pose, double* joint);
+//extern int16 ScaraBasicFJ(cartesian_module * m_cart, joint_module* m_joint, kinematics* m_kine, robot_config_module* p_config, const double* pose, double* joint);
+//extern void matxx_axisAngle2protm_t(double angle, double w, matxx* axis, matxx* protm);
+
+extern robot_module  gRobotMod;
+
+#define  JOINT_DIM  6
+#define  CART_DIM   6
+
+int16 InitTrajectoryModule(trajectory_module *m_traj, robot_config_module *p_config, Uint8 id)
+{
+	Uint8 counter = 0;
+	Uint8   index = 0;
+	double   data = 0;
+
+	//---------------------------------------------------------------------
+	m_traj->current_time = 0;
+	//---------------------------------------------------------------------
+	//m_traj->pfInitTrajectoryModule = InitTrajectoryModule;
+	//m_traj->pfTrajSynCmdWithFd = TrajSynCmdWithFd;
+	//m_traj->pfCalcMotionProfile = CalcMotionProfile;
+	//m_traj->pfInsertNewMotionBlock = InsertNewMotionBlock;
+	//--------------------------------------------------------------------
+	m_traj->motion_block_buffer = (motion_block*)calloc(1, sizeof(motion_block[MOTION_MODULE_DEFAULT_MOTION_BLOCK_SIZE]));
+
+	//-------------------------------------------------------------------------
+	if (m_traj->motion_block_buffer == NULL)
+	{
+		// Memory allocated error
+		return -2;
+	}
+	//---------------------------------------------------------------------
+	m_traj->motion_block_execute = m_traj->motion_block_buffer;
+	m_traj->motion_block_new_insert = m_traj->motion_block_buffer;
+	m_traj->motion_block_calculate = m_traj->motion_block_buffer;
+	m_traj->motion_block_buffer_next = m_traj->motion_block_buffer + 1;
+	m_traj->motion_block_buffer_auxiliary = m_traj->motion_block_buffer + (MOTION_MODULE_DEFAULT_MOTION_BLOCK_SIZE - 1);
+	//---------------------------------------------------------------------
+
+	for (counter = 0; counter < MOTION_MODULE_DEFAULT_MOTION_BLOCK_SIZE; counter++)
+	{
+		//---------------------------------------------------------------------
+		// initial pose
+		//---------------------------------------------------------------------
+		matxx_malloc(&((m_traj->motion_block_buffer + counter)->pose.joint_start_vector), p_config->joint_dim, 1);
+		matxx_malloc(&((m_traj->motion_block_buffer + counter)->pose.joint_end_vector), p_config->joint_dim, 1);
+		matxx_malloc(&((m_traj->motion_block_buffer + counter)->pose.joint_unit_vector), p_config->joint_dim, 1);
+		matxx_malloc(&((m_traj->motion_block_buffer + counter)->pose.joint_pos), p_config->joint_dim, 1);
+		matxx_malloc(&((m_traj->motion_block_buffer + counter)->pose.joint_temp_vector), p_config->joint_dim, 1);
+		//printf("%d", p_config->joint_dim);
+		//---------------------------------------------------------------------
+		/* rotation matrix */
+		VECTOR3(&((m_traj->motion_block_buffer + counter)->pose.axis_vector));
+		VECTOR3(&((m_traj->motion_block_buffer + counter)->pose.unit_vector));
+		VECTOR3(&((m_traj->motion_block_buffer + counter)->pose.center_vector));
+		SQUARE3(&((m_traj->motion_block_buffer + counter)->pose.rotation_matxx));
+		SQUARE3(&((m_traj->motion_block_buffer + counter)->pose.d_rotation_matxx));
+		SQUARE3(&((m_traj->motion_block_buffer + counter)->pose.rot_start));
+		SQUARE3(&((m_traj->motion_block_buffer + counter)->pose.rot_end));
+		//---------------------------------------------------------------------
+		/* Cartesian Commands */
+		VECTOR3(&((m_traj->motion_block_buffer + counter)->pose.cartesian_xyz));
+		VECTOR3(&((m_traj->motion_block_buffer + counter)->pose.cartesian_eul));
+
+		//---------------------------------------------------------------------
+		// motion block ID
+		(m_traj->motion_block_buffer + counter)->motion_block_id = counter;
+		//---------------------------------------------------------------------
+		(m_traj->motion_block_buffer + counter)->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_IDL;
+		(m_traj->motion_block_buffer + counter)->motion_type = TRAJECTORY_MODULE_MOTION_TYPE_P2P;
+	}
+	//---------------------------------------------------------------------------
+	//set all to zero;
+	motion_block* 	p_motion = m_traj->motion_block_buffer;
+	for (index = 0; index < p_config->cart_dim; index++)
+	{
+		(p_motion)->pose.pose_start[index] = 0;
+		(p_motion + 1)->pose.pose_start[index] = 0;
+		(p_motion + 2)->pose.pose_start[index] = 0;
+
+		(p_motion)->pose.pose_end[index] = 0;
+		(p_motion + 1)->pose.pose_end[index] = 0;
+		(p_motion + 2)->pose.pose_end[index] = 0;
+	}
+	for (index = 0; index < p_config->joint_dim; index++)
+	{
+		matxx_set_element(&p_motion->pose.joint_start_vector, index, 0, &(data));
+	}
+
+	matxx_copy(&p_motion->pose.joint_start_vector, &p_motion->pose.joint_end_vector);
+	matxx_copy(&p_motion->pose.joint_start_vector, &(p_motion + 1)->pose.joint_start_vector);
+	matxx_copy(&p_motion->pose.joint_start_vector, &(p_motion + 2)->pose.joint_start_vector);
+	matxx_copy(&p_motion->pose.joint_end_vector, &(p_motion + 1)->pose.joint_end_vector);
+	matxx_copy(&p_motion->pose.joint_end_vector, &(p_motion + 2)->pose.joint_end_vector);
+	return 0;
+}
+motion_block* get_next_motion_block(const motion_block* buffer, const motion_block* current)
+{
+	motion_block* next = (motion_block*)current;
+	Uint8 counter = 0;
+	//----------------------------------------------
+	//get current id
+	counter = current->motion_block_id;
+	counter++;
+	//----------------------------------------------
+	if (counter >= MOTION_MODULE_DEFAULT_MOTION_BLOCK_SIZE)
+	{
+		//back to the first motion block
+		next = (motion_block*)buffer;
+	}
+	else
+	{
+		//point to the next motion block
+		next = (motion_block*)(current + 1);
+	}
+	return next;
+}
+//----------------------------------------------------------------------------------------
+motion_block* get_last_motion_block(const motion_block* buffer, const motion_block* current)
+{
+	motion_block* last = (motion_block*)current;
+	Uint8 counter = 0;
+	//----------------------------------------------
+	counter = current->motion_block_id;
+	counter--;
+	//----------------------------------------------
+	if (counter < 0)
+	{
+		//back to the buffer motion block end
+		counter = MOTION_MODULE_DEFAULT_MOTION_BLOCK_SIZE - 1;
+		last = (motion_block*)(buffer + counter);
+	}
+	else
+	{
+		//point to the last motion block
+		last = (motion_block*)(current - 1);
+	}
+	return last;
+}
+
+void calculate_acceleration_from_profile(double t,
+	double jerk,
+	double acc_init,
+	double* acc_t)
+{
+	*acc_t = acc_init;
+	*acc_t += jerk * t;
+	return;
+}
+//------------------------------------------------------------------
+void calculate_velocity_from_profile(double t,
+	double jerk,
+	double acc_init,
+	double vel_init,
+	double* vel_t)
+{
+	/*
+	* v =  v0 + a0 * t + 0.5 * jerk * t * t
+	*   = v0 + (a0  + 0.5 * jerk * t )* t
+	* */
+	*vel_t = acc_init;
+	*vel_t += jerk * t * 0.5;
+	*vel_t *= t;
+	*vel_t += vel_init;
+	return;
+}
+//------------------------------------------------------------------
+void calculate_position_from_profile(double t,
+	double jerk,
+	double acc_init,
+	double vel_init,
+	double pos_init,
+	double* pos_t)
+{
+	/*
+	* s
+	* =  s0+ v0*t + a0*t*t*1/2  + jerk*t*t*t*1/6
+	* =  s0+ (v0 + a0*t*1/2  + jerk*t*t*1/6)*t
+	* =  s0+ (v0 + (a0  + jerk*t*1/3)*t*1/2 )*t
+	* */
+	*pos_t = acc_init;
+	*pos_t += jerk * t * 0.333333333333333;
+	*pos_t *= (t*0.5);
+	*pos_t += vel_init;
+	*pos_t *= t;
+	*pos_t += pos_init;
+	return;
+}
+
+int16 TrajectoryGenerator(trajectory_module* p_trajectory, cartesian_module* p_cart, joint_module* p_joint, robot_config_module* p_config, Uint8 id)
+{
+	robot_module* p_RobMod;
+
+	p_RobMod = &gRobotMod;
+
+	motion_block* 			p_motion = p_trajectory->motion_block_execute;
+	motion_block* 			p_motion_next = p_trajectory->motion_block_execute;
+	motion_block* 			p_last_motion = p_trajectory->motion_block_execute;
+	//-------------------------------------------------------------------
+	double joint[JOINT_DIM];
+	double cart[CART_DIM];
+	double cart_next[CART_DIM];
+	double joint_next[JOINT_DIM];
+	double joint_vel_next[CART_DIM];
+	//double cart_pos[3]; 							// posture in roll,yaw,pitch
+	double cart_pos_vel[3];							// Angular speed in roll,yaw,pitch
+	double w[3];
+	//double cart_pos_next[3];
+	double anglespd[3] = { 0,0,0 };
+	double cart_pos_vel_next[3];
+	double joint_vel[JOINT_DIM];
+	double cart_vel[CART_DIM];
+	double cart_vel_next[CART_DIM];
+	double tmp;
+	//-------------------------------------------------------------------
+	int32 blending_current_time = 0;
+	Uint8 cart_id = 0;
+	Uint8 joint_id = 0;
+	Uint8 counter = 0;
+
+	double clock_time = 0.0;
+	double line_pos = 0.0;
+	double line_vel = 0.0;
+	double line_pos_next = 0.0;
+	double line_vel_next = 0.0;
+	double temp_pos = 0.0;
+	double temp_vel = 0.0;
+	double circle_pos = 0.0;		//arc lenth
+	double circle_vel = 0.0;		//tangent line vel
+	double circle_pos_next = 0.0;		//arc lenth
+	double circle_vel_next = 0.0;		//tangent line vel
+	double circle_w = 0.0;		// angular velocity ---w
+	double circle_angle_delta = 0.0;
+
+	matxx cartesian_xyz_vel;
+	matxx cartesian_xyz_vel_next;
+	matxx rot_tmp;
+	matxx tmp31;
+	VECTOR3(&cartesian_xyz_vel);
+	VECTOR3(&cartesian_xyz_vel_next);
+	SQUARE3(&rot_tmp);
+	VECTOR3(&tmp31);
+	if (p_motion->state < TRAJECTORY_MODULE_MOTION_BLOCK_STATE_RUNNING)
+	{
+		/* do not running */
+		return 0;
+	}
+	//-----------------------------------------------------------------
+	// Running
+	//p_motion->motion_type = TRAJECTORY_MODULE_MOTION_TYPE_P2P;
+	switch (p_motion->motion_type)
+	{
+	case TRAJECTORY_MODULE_MOTION_TYPE_P2P:
+	{
+		// update trajectory clock
+		p_trajectory->current_time++;
+
+		//get next motion block
+		p_motion_next = get_next_motion_block(p_trajectory->motion_block_buffer, p_motion_next);
+		p_last_motion = get_last_motion_block(p_trajectory->motion_block_buffer, p_last_motion);
+
+		if ((!p_trajectory->current_time) && (p_motion_next->blending.is_need_blending))
+		{
+			/* when start motion, check the next blending condition first */
+			if (!p_motion_next->blending.is_ready_blending)
+			{
+				/* Wait to finish calculating the motion profile parameter and blending parameter*/
+				return 0;
+			}
+		}
+		//if the current need blending ,the before part has been execute at last block.
+		if (p_motion->blending.is_need_blending)
+		{
+			/* start motion at the time of finishing blending.*/
+			p_trajectory->current_time = p_motion->blending.blending_time_length + 1;
+			p_motion->blending.is_need_blending = 0; /* no need now, for blending is finished! */
+		}
+		//-----------------------------------------------------------------
+		for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+		{
+			// Trajectory generated by a polynomial.
+			for (counter = 0; counter < 7; counter++)
+			{
+				if ((p_trajectory->current_time > p_motion->traj_joint[joint_id].time_series[counter]) && \
+					(p_trajectory->current_time <= p_motion->traj_joint[joint_id].time_series[counter + 1]))
+				{
+					/* determine the time interval,and calculate the states in the time interval */
+					clock_time = p_trajectory->current_time - p_motion->traj_joint[joint_id].time_series[counter];
+					clock_time *= p_motion->prf_joint[joint_id].profile_sample_time;
+
+					//	p_motion->trajectory.pos = 0.0;
+
+					//calculate acc
+					calculate_acceleration_from_profile(clock_time,
+						p_motion->traj_joint[joint_id].jerk_series[counter],
+						p_motion->traj_joint[joint_id].acc_series[counter],
+						&p_motion->traj_joint[joint_id].acc);
+
+					calculate_velocity_from_profile(clock_time,
+						p_motion->traj_joint[joint_id].jerk_series[counter],
+						p_motion->traj_joint[joint_id].acc_series[counter],
+						p_motion->traj_joint[joint_id].vel_series[counter],
+						&p_motion->traj_joint[joint_id].vel);
+
+					calculate_position_from_profile(clock_time,
+						p_motion->traj_joint[joint_id].jerk_series[counter],
+						p_motion->traj_joint[joint_id].acc_series[counter],
+						p_motion->traj_joint[joint_id].vel_series[counter],
+						p_motion->traj_joint[joint_id].pos_series[counter],
+						&p_motion->traj_joint[joint_id].pos);
+					//joint[joint_id] = p_motion->traj_joint[joint_id].pos;
+					// Break the FOR ,just do once every cycle
+					break;
+				}
+			}
+			if (p_motion_next->blending.is_need_blending)
+			{
+				//the next block need blending,so do the end blending ,which also is the next start blending
+				blending_current_time = p_trajectory->current_time - p_motion_next->blending.blending_start_time;
+				if (blending_current_time > 0 && p_motion_next->prfcoord_type == COORD_TYPE_JOINT)
+				{
+
+					for (counter = 0; counter < 7; counter++)
+					{
+						/* if next block is type_joint ,blending is joint and joint's blending */
+
+						if ((blending_current_time > p_motion_next->traj_joint[joint_id].time_series[counter]) && \
+							(blending_current_time <= p_motion_next->traj_joint[joint_id].time_series[counter + 1]))
+						{
+							/* determine the time interval,and calculate the states in the time interval */
+							clock_time = blending_current_time - p_motion_next->traj_joint[joint_id].time_series[counter];
+							clock_time *= p_motion_next->prf_joint[joint_id].profile_sample_time;
+
+							calculate_acceleration_from_profile(clock_time,
+								p_motion_next->traj_joint[joint_id].jerk_series[counter],
+								p_motion_next->traj_joint[joint_id].acc_series[counter],
+								&p_motion_next->traj_joint[joint_id].acc);
+							calculate_velocity_from_profile(clock_time,
+								p_motion_next->traj_joint[joint_id].jerk_series[counter],
+								p_motion_next->traj_joint[joint_id].acc_series[counter],
+								p_motion_next->traj_joint[joint_id].vel_series[counter],
+								&p_motion_next->traj_joint[joint_id].vel);
+							calculate_position_from_profile(clock_time,
+								p_motion_next->traj_joint[joint_id].jerk_series[counter],
+								p_motion_next->traj_joint[joint_id].acc_series[counter],
+								p_motion_next->traj_joint[joint_id].vel_series[counter],
+								p_motion_next->traj_joint[joint_id].pos_series[counter],
+								&p_motion_next->traj_joint[joint_id].pos);
+							joint_next[joint_id] = (*(p_motion_next->pose.joint_start_vector.point))[joint_id] + p_motion_next->traj_joint[joint_id].pos;
+							joint_vel_next[joint_id] = p_motion_next->traj_joint[joint_id].vel;
+							/* Break the FOR */
+							break;
+						}
+					}
+				}
+			}
+		}
+		if (p_motion_next->blending.is_need_blending)
+		{
+			//the next block need blending,so do the end blending ,which also is the next start blending
+			blending_current_time = p_trajectory->current_time - p_motion_next->blending.blending_start_time;
+			if (blending_current_time > 0 && p_motion_next->prfcoord_type == COORD_TYPE_CART)
+			{
+				for (counter = 0; counter < 7; counter++)
+				{
+					if ((blending_current_time > p_motion_next->trajectory.time_series[counter]) && \
+						(blending_current_time <= p_motion_next->trajectory.time_series[counter + 1]))
+					{
+						clock_time = blending_current_time - p_motion_next->trajectory.time_series[counter];
+						clock_time *= p_motion_next->profile.profile_sample_time;
+						//-----------------position-----------------
+						calculate_acceleration_from_profile(clock_time,
+							p_motion_next->trajectory.jerk_series[counter],
+							p_motion_next->trajectory.acc_series[counter],
+							&p_motion_next->trajectory.acc);
+						calculate_velocity_from_profile(clock_time,
+							p_motion_next->trajectory.jerk_series[counter],
+							p_motion_next->trajectory.acc_series[counter],
+							p_motion_next->trajectory.vel_series[counter],
+							&p_motion_next->trajectory.vel);
+						calculate_position_from_profile(clock_time,
+							p_motion_next->trajectory.jerk_series[counter],
+							p_motion_next->trajectory.acc_series[counter],
+							p_motion_next->trajectory.vel_series[counter],
+							p_motion_next->trajectory.pos_series[counter],
+							&p_motion_next->trajectory.pos);
+						break;
+					}
+				}
+
+				for (counter = 0; counter < 7; counter++)
+				{
+					if ((blending_current_time > p_motion_next->traj_cart_rot.time_series[counter]) && \
+						(blending_current_time <= p_motion_next->traj_cart_rot.time_series[counter + 1]))
+					{
+						clock_time = blending_current_time - p_motion_next->traj_cart_rot.time_series[counter];
+						clock_time *= p_motion_next->prf_cart_rot.profile_sample_time;
+						//----------------posture-----------------------
+						// when blending ,position and posture have the same time.
+						// calculate pos
+						calculate_position_from_profile(clock_time,
+							p_motion_next->traj_cart_rot.jerk_series[counter],
+							p_motion_next->traj_cart_rot.acc_series[counter],
+							p_motion_next->traj_cart_rot.vel_series[counter],
+							p_motion_next->traj_cart_rot.pos_series[counter],
+							&p_motion_next->traj_cart_rot.pos);
+
+						calculate_velocity_from_profile(clock_time,
+							p_motion_next->traj_cart_rot.jerk_series[counter],
+							p_motion_next->traj_cart_rot.acc_series[counter],
+							p_motion_next->traj_cart_rot.vel_series[counter],
+							&p_motion_next->traj_cart_rot.vel);
+						break;
+					}
+				}
+				//angle-axis convert to rotate matrix
+				matxx_axisAngl2Rotm(p_motion_next->traj_cart_rot.pos,		//angle in rad
+					&p_motion_next->pose.axis_vector,		//axis
+					&p_motion_next->pose.rotation_matxx);
+				/*  B=R*A */
+				matxx_multiply(&p_motion_next->pose.rotation_matxx, &p_motion_next->pose.rot_start, &p_motion_next->pose.rotation_matxx);
+
+				/* calculate   pitch, roll, yaw */
+				cart_next[4] = atan2(-*(*(p_motion_next->pose.rotation_matxx.point + 0) + 2), pow(pow(*(*(p_motion_next->pose.\
+					rotation_matxx.point + 0) + 0), 2) + pow(*(*(p_motion_next->pose.rotation_matxx.point + 0) + 1), 2), 0.5));
+
+				if (fabs(cart_next[4] - 3.1415926 / 2) < 1E-10)
+				{
+					cart_next[3] = 0;
+					cart_next[5] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 0), *(*(p_motion_next->pose.rotation_matxx.point + 1) + 1));
+				}
+				else if (fabs(cart_next[4] + 3.1415926 / 2) < 1E-10)
+				{
+					cart_next[3] = 0;
+					cart_next[5] = -atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 0), *(*(p_motion_next->pose.rotation_matxx.point + 1) + 1));
+				}
+				else
+				{
+					cart_next[3] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 0) + 1) / cos(cart_next[4]), *(*(p_motion_next->pose.\
+						rotation_matxx.point + 0) + 0) / cos(cart_next[4]));
+					cart_next[5] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 2) / cos(cart_next[4]), *(*(p_motion_next->pose.\
+						rotation_matxx.point + 2) + 2) / cos(cart_next[4]));
+				}
+				//decompose the angular velocity to basical coordinate system
+				matxx_transpose(&p_motion_next->pose.rot_start, &rot_tmp);
+				matxx_multiply(&rot_tmp, &p_motion_next->pose.axis_vector, &tmp31);
+
+				// Wx  [ axis_x ]   
+				// Wy =[ axis_y ] * angular_vel
+				// Wz  [ axis_z ]
+				matxx_k_mult(p_motion_next->traj_cart_rot.vel, &tmp31);
+
+				w[0] = *(*(tmp31.point + 0) + 0);
+				w[1] = *(*(tmp31.point + 0) + 1);
+				w[2] = *(*(tmp31.point + 0) + 2);
+
+				// d a /d t          [ 0    sr    cr    ]   [ Wx ]
+				// d b /d t = 1/cb * [ 0    cscb  -srcb ] * [ Wy ]
+				// d r /d t          [ cb   srsb  crsb  ]   [ Wz ]
+				if (fabs(cart_next[4] - 3.1415926 / 2) < MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+				{
+					cart_vel_next[4] = w[1] / cos(cart_next[5]);
+					cart_vel_next[5] = -w[2] / sin(cart_next[5]);
+					cart_vel_next[3] = cart_vel_next[5] - w[0];
+
+				}
+				else
+				{
+					cart_vel_next[3] = 1 / cos(cart_next[4])*(sin(cart_next[5])*w[1] + cos(cart_next[5])* w[2]);
+					cart_vel_next[4] = 1 / cos(cart_next[4])*(cos(cart_next[5])*cos(cart_next[4])*w[1] - sin(cart_next[5])*cos(cart_next[4])*w[2]);
+					cart_vel_next[5] = w[0] + sin(cart_next[5])*tan(cart_next[4])*w[1] + cos(cart_next[5])*tan(cart_next[4])*w[2];
+				}
+
+				cart_next[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart_next[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart_next[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart_vel_next[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart_vel_next[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart_vel_next[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+
+				if (p_motion_next->motion_type == TRAJECTORY_MODULE_MOTION_TYPE_LIN)
+				{
+					line_pos_next = p_motion_next->trajectory.pos;
+					line_vel_next = p_motion_next->trajectory.vel;
+					for (cart_id = 0; cart_id < p_config->cart_trans_dim; cart_id++)
+					{
+						cart_next[cart_id] = p_motion_next->pose.pose_start[cart_id] + line_pos_next * p_motion_next->pose.pose_unit_vector[cart_id];
+						cart_vel_next[cart_id] = line_vel_next*p_motion_next->pose.pose_unit_vector[cart_id];
+					}
+					/* calculate the joint */
+					//gRobot.robot_dev[id].module.kinematics.pfFK(p_cart, p_joint, &gRobot.robot_dev[id].module.kinematics, p_config, cart_next, joint_next);
+					//gRobot.robot_dev[id].module.kinematics.pfIJ(p_cart, p_joint, &gRobot.robot_dev[id].module.kinematics, p_config, cart_vel_next, joint_vel_next);				
+				}
+				if (p_motion_next->motion_type == TRAJECTORY_MODULE_MOTION_TYPE_CIRCL)
+				{
+					circle_pos_next = p_motion_next->trajectory.pos;
+					circle_vel_next = p_motion_next->trajectory.vel;
+					/* get position command
+					* P0 + [RotM(s,w) - I] * CP0 ,where : s is angle,w is axis
+					* */
+					// get arc length corresponding angle in Rad
+					circle_angle_delta = circle_pos_next * p_motion_next->pose.circle_radius_inv;
+
+					//angle-axis convert to rotate matrix
+					matxx_axisAngl2Rotm(-circle_angle_delta,		//angle in rad
+						&p_motion_next->pose.unit_vector,		//axis
+						&p_motion_next->pose.rotation_matxx);
+
+					// Let XYZ = P0
+					matxx_assign(&p_motion_next->pose.cartesian_xyz,
+						p_motion_next->pose.pose_start,
+						3);
+					/* RotM(s,w) - I */
+					for (counter = 0; counter < 3; counter++)
+					{
+						(*(p_motion_next->pose.rotation_matxx.point + counter))[counter] -= 1.0;
+					}
+
+					/* do rotation */
+					//cartesian_xyz = center_vector*rotation_matxx + cartesian_xyz(this is start pos)
+					matxx_mat_vec_opt(&p_motion_next->pose.center_vector,
+						&p_motion_next->pose.rotation_matxx,
+						1.0,
+						1.0,
+						&p_motion_next->pose.cartesian_xyz);
+					/* get velocity command
+					* dP(s(t))/dt = dP(s)/ds * ds(t)/dt   ---->s(t) is angle
+					* where ds(t)/dt  = w
+					* dP(s)/ds = dRotM(s,w)/ds * CP0, other part is constant ,so is zero
+					*
+					* and vel = dRotM(s,w)/ds * CP0 * w
+					* */
+					//v = w*r    w = v/r
+					circle_w = circle_vel_next* p_motion_next->pose.circle_radius_inv;
+					matxx_axisAngle2protm_t(circle_angle_delta, 1,			//angle
+						&p_motion_next->pose.unit_vector,	//axis
+						&p_motion_next->pose.rotation_matxx); //rotate matrix differential
+
+															  //matxx_copy(&p_motion_next->pose.rotation_matxx, &rot_tmp);
+															  //matxx_transpose(&rot_tmp, &p_motion_next->pose.rotation_matxx);
+
+					matxx_mat_vec_opt(&p_motion_next->pose.center_vector,	//cp0
+						&p_motion_next->pose.rotation_matxx,   //rotate matrix differential
+						circle_w,						    //w
+						0.0,
+						&cartesian_xyz_vel);
+					for (cart_id = 0; cart_id < p_config->cart_trans_dim; cart_id++)
+					{
+						cart_next[cart_id] = *(*(p_motion_next->pose.cartesian_xyz.point + 0) + cart_id);
+						cart_vel_next[cart_id] = *(*(cartesian_xyz_vel.point + 0) + cart_id);
+					}
+					/* calculate the joint */
+					//gRobot.robot_dev[id].module.kinematics.pfFK(p_cart, p_joint, &gRobot.robot_dev[id].module.kinematics, p_config, cart_next, joint_next);
+					//gRobot.robot_dev[id].module.kinematics.pfIJ(p_cart, p_joint, &gRobot.robot_dev[id].module.kinematics, p_config, cart_vel_next, joint_vel_next);
+				}
+
+				//	extern kinematics *p_kine;
+				//ScaraIK(p_cart, p_joint, p_kine, p_config, cart, joint);
+				ScaraIK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_next, joint_next,1);
+
+			}
+		}
+
+
+
+
+		/* calculate the joint */
+		//gRobot.robot_dev[id].module.kinematics.pfFK(p_cart, p_joint, &gRobot.robot_dev[id].module.kinematics, p_config, cart_next, joint_next);
+		//gRobot.robot_dev[id].module.kinematics.pfIJ(p_cart, p_joint, &gRobot.robot_dev[id].module.kinematics, p_config, cart_vel_next, joint_vel_next);				
+
+
+		for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+		{
+			//Pt = P0 + delta;
+			//do not have unit vector concept
+			//joint_pos is used for real time pos matrix
+			//calculate the joint_pos for every joint
+			(*(p_motion->pose.joint_pos.point))[joint_id] = (*(p_motion->pose.joint_start_vector.point))[joint_id] + \
+				p_motion->traj_joint[joint_id].pos;
+			//-----------------------------------------------------------------
+			// get the command
+			matxx_get_element(&p_motion->pose.joint_pos, joint_id, 0, &(p_joint[joint_id].joint_pos_cmd));
+
+			//real time vel cmd
+			p_joint[joint_id].joint_vel_cmd = p_motion->traj_joint[joint_id].vel;
+			//real time pos cmd
+			joint[joint_id] = p_joint[joint_id].joint_pos_cmd;
+			joint_vel[joint_id] = p_joint[joint_id].joint_vel_cmd;
+		}
+
+		if (p_motion_next->blending.is_need_blending && (blending_current_time > 0))
+		{
+			if (p_motion_next->prfcoord_type == COORD_TYPE_CART)
+			{
+				for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+				{
+					p_joint[joint_id].joint_pos_cmd = joint_next[joint_id];
+				}
+
+				ScaraBasicIJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel_next, joint_vel_next);
+
+			}
+
+			for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+			{
+
+
+				p_joint[joint_id].joint_vel_cmd = joint_vel[joint_id] + joint_vel_next[joint_id];//+ p_motion_next->blending.blending_time_length_inv / 0.001*(joint_next[joint_id] - joint[joint_id])
+																								 //- tmp * (joint_vel[joint_id] - joint_vel_next[joint_id]);
+
+				p_joint[joint_id].joint_pos_cmd = joint[joint_id] + joint_next[joint_id] - p_motion->traj_joint[joint_id].pos_series[7];
+
+				joint[joint_id] = p_joint[joint_id].joint_pos_cmd;
+				joint_vel[joint_id] = p_joint[joint_id].joint_vel_cmd;
+			}
+
+
+		}
+
+
+		ScaraFK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint);
+		ScaraBasicFJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+
+		for (cart_id = 0; cart_id < p_config->cart_dim; cart_id++)
+		{
+			p_cart->cart_pos_cmd[cart_id] = cart[cart_id];
+			p_cart->cart_vel_cmd[cart_id] = cart_vel[cart_id];
+			//jacobi forward to get cartesian vel
+
+		}
+		//-----------------------------------------------------------------
+		// finish,because every joint has same time
+		if (p_trajectory->current_time >= p_motion->traj_joint[1].time_series[7])
+		{
+			extern int gSign;
+			gSign = 1;
+			/* insert new motion block at current block */
+			/**
+			if (gRobot.robot_dev[id].mode.resume_flag == 1 && gRobot.robot_dev[id].mode.mode == ROBOT_MODULE_SCRIPT_MODE)
+			{
+			/* clear resume flag *
+			gRobot.robot_dev[id].mode.resume_flag = 2;
+
+			/* clear the clock time *
+			p_trajectory->current_time = 0;
+
+			/* resume the motion type *
+			p_motion->motion_type = p_motion->temp_type;
+
+			p_motion->blending.is_need_blending = 0;
+
+			if (p_motion->motion_type == TRAJECTORY_MODULE_MOTION_TYPE_P2P)
+			{
+			matxx_copy(&p_motion->pose.joint_end_vector, &p_motion->pose.joint_start_vector);
+			matxx_copy(&p_motion->pose.joint_temp_vector, &p_motion->pose.joint_end_vector);
+			}
+
+			/* set states *
+			p_motion->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_USED;
+			p_trajectory->motion_block_calculate = p_motion;
+
+			rtems_semaphore_release(gRobot.robot_dev[id].mgr.profile_task_sem);
+
+
+			}
+			else*/
+			//{
+
+			p_motion->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_IDL;
+
+			// clear states
+		
+			p_trajectory->current_time = 0;
+			p_trajectory->motion_block_execute = p_motion_next;
+
+			/*
+			if (gRobot.robot_dev[id].mode.mode == ROBOT_MODULE_SCRIPT_MODE)
+			{
+			/* back to calculate insert block *
+			if (gRobot.robot_dev[id].mode.resume_flag == 2)
+			{
+			gRobot.robot_dev[id].mode.resume_flag = 0;
+			while (p_trajectory->motion_block_calculate != TRAJECTORY_MODULE_MOTION_BLOCK_STATE_USED)
+			{
+			p_trajectory->motion_block_calculate = get_next_motion_block(p_trajectory->motion_block_buffer, p_trajectory\
+			->motion_block_calculate);
+			}
+			}
+			/* inform to create new motion block ,then you can create new motion block*
+			rtems_semaphore_release(gRobot.robot_dev[id].mgr.script_task_sem);
+			}*/
+			//}
+		}
+		//-----------------------------------------------------------------
+		// call direct Kinematics to get Cartesian pos
+		//for (int i=0;i<6;i++)
+		//	joint[joint_id] = p_joint[joint_id].joint_pos_cmd;
+		break;
+	}
+
+	case TRAJECTORY_MODULE_MOTION_TYPE_LIN: // line motion in Cartesian ,just support line-line blending
+	{
+		//-----------------------------------------------------------------
+		p_motion_next = get_next_motion_block(p_trajectory->motion_block_buffer, p_motion_next);
+
+		if ((!p_trajectory->current_time) && (p_motion_next->blending.is_need_blending))
+		{
+			/* when start motion, check the next blending condition first */
+			if (!p_motion_next->blending.is_ready_blending)
+			{
+				/* Wait to finish calculating the motion profile parameter and blending parameter*/
+				return 0;
+			}
+		}
+		/* update clock */
+		p_trajectory->current_time++;
+
+		if (fabs(p_motion->trajectory.total_interval) < MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+		{
+			/* no motion */
+			p_motion->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_IDL;
+
+			/* clear states */
+			p_trajectory->current_time = 0;
+			p_trajectory->motion_block_execute = p_motion_next;
+
+			//if (gRobot.robot_dev[id].mode.mode == ROBOT_MODULE_SCRIPT_MODE)
+			//{
+			/* inform to create new motion block ,then you can create new motion block*/
+			//	rtems_semaphore_release(gRobot.robot_dev[id].mgr.script_task_sem);
+			//}
+			return -1;
+		}
+		//if the current need blending ,the before part has been execute at last block.
+		//so start from the blending finish clock
+		if (p_motion->blending.is_need_blending)
+		{
+			/* start motion at the time of finishing blending.*/
+			p_trajectory->current_time = p_motion->blending.blending_time_length + 1;
+			p_motion->blending.is_need_blending = 0; /* no need now, for blending is finished! */
+		}
+
+		/* Trajectory generated by a polynomial. */
+		//this part is do not need blending ,which in the center of the block ,maybe start and end all need blending
+		for (counter = 0; counter < 7; counter++)
+		{
+
+			if ((p_trajectory->current_time > p_motion->trajectory.time_series[counter]) && \
+				(p_trajectory->current_time <= p_motion->trajectory.time_series[counter + 1]))
+			{
+				/* determine the time interval,and calculate the states in the time interval */
+				clock_time = p_trajectory->current_time - p_motion->trajectory.time_series[counter];
+				clock_time *= p_motion->profile.profile_sample_time;
+
+				calculate_acceleration_from_profile(clock_time,
+					p_motion->trajectory.jerk_series[counter],
+					p_motion->trajectory.acc_series[counter],
+					&p_motion->trajectory.acc);
+				calculate_velocity_from_profile(clock_time,
+					p_motion->trajectory.jerk_series[counter],
+					p_motion->trajectory.acc_series[counter],
+					p_motion->trajectory.vel_series[counter],
+					&p_motion->trajectory.vel);
+				calculate_position_from_profile(clock_time,
+					p_motion->trajectory.jerk_series[counter],
+					p_motion->trajectory.acc_series[counter],
+					p_motion->trajectory.vel_series[counter],
+					p_motion->trajectory.pos_series[counter],
+					&p_motion->trajectory.pos);
+				line_pos = p_motion->trajectory.pos;
+				line_vel = p_motion->trajectory.vel;
+				break;
+			}
+		}
+
+		for (counter = 0; counter < 7; counter++)
+		{
+
+			if ((p_trajectory->current_time > p_motion->traj_cart_rot.time_series[counter]) && \
+				(p_trajectory->current_time <= p_motion->traj_cart_rot.time_series[counter + 1]))
+			{
+				/* determine the time interval,and calculate the states in the time interval */
+				clock_time = p_trajectory->current_time - p_motion->traj_cart_rot.time_series[counter];
+				clock_time *= p_motion->profile.profile_sample_time;
+				//calculate posture
+				calculate_position_from_profile(clock_time,
+					p_motion->traj_cart_rot.jerk_series[counter],
+					p_motion->traj_cart_rot.acc_series[counter],
+					p_motion->traj_cart_rot.vel_series[counter],
+					p_motion->traj_cart_rot.pos_series[counter],
+					&p_motion->traj_cart_rot.pos);
+
+				calculate_velocity_from_profile(clock_time,
+					p_motion->traj_cart_rot.jerk_series[counter],
+					p_motion->traj_cart_rot.acc_series[counter],
+					p_motion->traj_cart_rot.vel_series[counter],
+					&p_motion->traj_cart_rot.vel);
+
+				//angle-axis convert to rotate matrix
+				matxx_axisAngl2Rotm(p_motion->traj_cart_rot.pos,		//angle in rad
+					&p_motion->pose.axis_vector,		//axis
+					&p_motion->pose.rotation_matxx);
+				//save the R;
+				//matxx_transpose(&p_motion->pose.rot_start, &rot_tmp);
+				/*  B=R*A */
+				matxx_multiply(&p_motion->pose.rotation_matxx, &p_motion->pose.rot_start, &p_motion->pose.rotation_matxx);
+
+				/* calculate   pitch, roll, yaw */
+				cart[4] = atan2(-*(*(p_motion->pose.rotation_matxx.point + 0) + 2), pow(pow(*(*(p_motion->pose.\
+					rotation_matxx.point + 0) + 0), 2) + pow(*(*(p_motion->pose.rotation_matxx.point + 0) + 1), 2), 0.5));
+
+				if (fabs(cart[4] - 3.1415926 / 2)<1E-10)
+				{
+					cart[3] = 0;
+					cart[5] = atan2(*(*(p_motion->pose.rotation_matxx.point + 1) + 0), *(*(p_motion->pose.rotation_matxx.point + 1) + 1));
+				}
+				else if (fabs(cart[4] + 3.1415926 / 2)<1E-10)
+				{
+					cart[3] = 0;
+					cart[5] = -atan2(*(*(p_motion->pose.rotation_matxx.point + 1) + 0), *(*(p_motion->pose.rotation_matxx.point + 1) + 1));
+				}
+				else
+				{
+					cart[3] = atan2(*(*(p_motion->pose.rotation_matxx.point + 0) + 1) / cos(cart[4]), *(*(p_motion->pose.\
+						rotation_matxx.point + 0) + 0) / cos(cart[4]));
+					cart[5] = atan2(*(*(p_motion->pose.rotation_matxx.point + 1) + 2) / cos(cart[4]), *(*(p_motion->pose.\
+						rotation_matxx.point + 2) + 2) / cos(cart[4]));
+				}
+				//decompose the angular velocity to basical coordinate system
+				matxx_copy(&p_motion->pose.axis_vector, &tmp31);
+				matxx_transpose(&p_motion->pose.rot_start, &rot_tmp);
+				matxx_multiply(&rot_tmp, &tmp31, &tmp31);
+
+				// Wx  [ axis_x ]   
+				// Wy =[ axis_y ] * angular_vel
+				// Wz  [ axis_z ]
+				matxx_k_mult(p_motion->traj_cart_rot.vel, &tmp31);
+
+				w[0] = *(*(tmp31.point + 0) + 0);
+				w[1] = *(*(tmp31.point + 0) + 1);
+				w[2] = *(*(tmp31.point + 0) + 2);
+
+				// d a /d t          [ 0    sr    cr    ]   [ Wx ]
+				// d b /d t = 1/cb * [ 0    cscb  -srcb ] * [ Wy ]
+				// d r /d t          [ cb   srsb  crsb  ]   [ Wz ]
+				cart_vel[3] = 1 / cos(cart[4])*(sin(cart[5])*w[1] + cos(cart[5])* w[2]);
+				cart_vel[4] = 1 / cos(cart[4])*(cos(cart[5])*cos(cart[4])*w[1] - sin(cart[5])*cos(cart[4])*w[2]);
+				cart_vel[5] = w[0] + sin(cart[5])*tan(cart[4])*w[1] + cos(cart[5])*tan(cart[4])*w[2];
+
+				cart[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart_vel[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart_vel[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+				cart_vel[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+
+
+				/* Break the FOR */
+				break;
+			}
+		}
+		//the next block need blending,so do the end blending ,which also is the next start blending
+		if (p_motion_next->blending.is_need_blending)
+		{
+			blending_current_time = p_trajectory->current_time - p_motion_next->blending.blending_start_time;
+			if (blending_current_time > 0)
+			{
+				if (p_motion_next->prfcoord_type == COORD_TYPE_CART)
+				{
+					for (counter = 0; counter < 7; counter++)
+					{
+						if ((blending_current_time > p_motion_next->trajectory.time_series[counter]) && \
+							(blending_current_time <= p_motion_next->trajectory.time_series[counter + 1]))
+						{
+							/* determine the time interval,and calculate the states in the time interval */
+							clock_time = blending_current_time - p_motion_next->trajectory.time_series[counter];
+							clock_time *= p_motion_next->profile.profile_sample_time;
+
+							calculate_acceleration_from_profile(clock_time,
+								p_motion_next->trajectory.jerk_series[counter],
+								p_motion_next->trajectory.acc_series[counter],
+								&p_motion_next->trajectory.acc);
+							calculate_velocity_from_profile(clock_time,
+								p_motion_next->trajectory.jerk_series[counter],
+								p_motion_next->trajectory.acc_series[counter],
+								p_motion_next->trajectory.vel_series[counter],
+								&p_motion_next->trajectory.vel);
+							calculate_position_from_profile(clock_time,
+								p_motion_next->trajectory.jerk_series[counter],
+								p_motion_next->trajectory.acc_series[counter],
+								p_motion_next->trajectory.vel_series[counter],
+								p_motion_next->trajectory.pos_series[counter],
+								&p_motion_next->trajectory.pos);
+							if (p_motion_next->motion_type == TRAJECTORY_MODULE_MOTION_TYPE_LIN)
+							{
+								line_pos_next = p_motion_next->trajectory.pos;
+								line_vel_next = p_motion_next->trajectory.vel;
+								for (cart_id = 0; cart_id < p_config->cart_trans_dim; cart_id++)
+								{
+									cart_next[cart_id] = p_motion_next->pose.pose_start[cart_id] + line_pos_next * p_motion_next->pose.pose_unit_vector[cart_id];
+									cart_vel_next[cart_id] = line_vel_next * p_motion_next->pose.pose_unit_vector[cart_id];
+								}
+							}
+							else if (p_motion_next->motion_type == TRAJECTORY_MODULE_MOTION_TYPE_CIRCL)
+							{
+								circle_pos_next = p_motion_next->trajectory.pos;
+								circle_vel_next = p_motion_next->trajectory.vel;
+								/* get position command
+								* P0 + [RotM(s,w) - I] * CP0 ,where : s is angle,w is axis
+								* */
+								// get arc length corresponding angle in Rad
+								circle_angle_delta = circle_pos_next * p_motion_next->pose.circle_radius_inv;
+
+								//angle-axis convert to rotate matrix
+								matxx_axisAngl2Rotm(-circle_angle_delta,		//angle in rad
+									&p_motion_next->pose.unit_vector,		//axis
+									&p_motion_next->pose.rotation_matxx);
+
+								// Let XYZ = P0
+								matxx_assign(&p_motion_next->pose.cartesian_xyz,
+									p_motion_next->pose.pose_start,
+									3);
+								/* RotM(s,w) - I */
+								for (counter = 0; counter < 3; counter++)
+								{
+									(*(p_motion_next->pose.rotation_matxx.point + counter))[counter] -= 1.0;
+								}
+
+								/* do rotation */
+								//cartesian_xyz = center_vector*rotation_matxx + cartesian_xyz(this is start pos)
+								matxx_mat_vec_opt(&p_motion_next->pose.center_vector,
+									&p_motion_next->pose.rotation_matxx,
+									1.0,
+									1.0,
+									&p_motion_next->pose.cartesian_xyz);
+								/* get velocity command
+								* dP(s(t))/dt = dP(s)/ds * ds(t)/dt   ---->s(t) is angle
+								* where ds(t)/dt  = w
+								* dP(s)/ds = dRotM(s,w)/ds * CP0, other part is constant ,so is zero
+								*
+								* and vel = dRotM(s,w)/ds * CP0 * w
+								* */
+								//v = w*r    w = v/r
+								circle_w = circle_vel_next * p_motion_next->pose.circle_radius_inv;
+								matxx_axisAngle2protm_t(circle_angle_delta, 1,			//angle
+									&p_motion_next->pose.unit_vector,	//axis
+									&p_motion_next->pose.rotation_matxx); //rotate matrix differential
+
+																		  //matxx_copy(&p_motion_next->pose.rotation_matxx, &rot_tmp);
+																		  //matxx_transpose(&rot_tmp, &p_motion_next->pose.rotation_matxx);
+
+								matxx_mat_vec_opt(&p_motion_next->pose.center_vector,	//cp0
+									&p_motion_next->pose.rotation_matxx,   //rotate matrix differential
+									circle_w,						    //w
+									0.0,
+									&cartesian_xyz_vel);
+								for (cart_id = 0; cart_id < p_config->cart_trans_dim; cart_id++)
+								{
+									cart_next[cart_id] = *(*(p_motion_next->pose.cartesian_xyz.point + 0) + cart_id);
+									cart_vel_next[cart_id] = *(*(cartesian_xyz_vel.point + 0) + cart_id);
+								}
+							}
+							else
+							{
+								return 0;
+							}
+							break;
+						}
+					}
+
+					//calculate the posture.
+					// when blending ,position and posture have the same time.
+					for (counter = 0; counter < 7; counter++)
+					{
+						if ((blending_current_time > p_motion_next->traj_cart_rot.time_series[counter]) && \
+							(blending_current_time <= p_motion_next->traj_cart_rot.time_series[counter + 1]))
+						{
+							/* determine the time interval,and calculate the states in the time interval */
+							clock_time = blending_current_time - p_motion_next->traj_cart_rot.time_series[counter];
+							clock_time *= p_motion_next->profile.profile_sample_time;
+							//calculate pos
+							calculate_position_from_profile(clock_time,
+								p_motion_next->traj_cart_rot.jerk_series[counter],
+								p_motion_next->traj_cart_rot.acc_series[counter],
+								p_motion_next->traj_cart_rot.vel_series[counter],
+								p_motion_next->traj_cart_rot.pos_series[counter],
+								&p_motion_next->traj_cart_rot.pos);
+
+							calculate_velocity_from_profile(clock_time,
+								p_motion_next->traj_cart_rot.jerk_series[counter],
+								p_motion_next->traj_cart_rot.acc_series[counter],
+								p_motion_next->traj_cart_rot.vel_series[counter],
+								&p_motion_next->traj_cart_rot.vel);
+							//angle-axis convert to rotate matrix
+							matxx_axisAngl2Rotm(p_motion_next->traj_cart_rot.pos,		//angle in rad
+								&p_motion_next->pose.axis_vector,		//axis
+								&p_motion_next->pose.rotation_matxx);
+							/*  B=R*A */
+							matxx_multiply(&p_motion_next->pose.rotation_matxx, &p_motion_next->pose.rot_start, &p_motion_next->pose.rotation_matxx);
+
+							/* calculate   pitch, roll, yaw */
+							cart_next[4] = atan2(-*(*(p_motion_next->pose.rotation_matxx.point + 0) + 2), pow(pow(*(*(p_motion_next->pose.\
+								rotation_matxx.point + 0) + 0), 2) + pow(*(*(p_motion_next->pose.rotation_matxx.point + 0) + 1), 2), 0.5));
+
+							if (fabs(cart_next[4] - 3.1415926 / 2) < 1E-10)
+							{
+								cart_next[3] = 0;
+								cart_next[5] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 0), *(*(p_motion_next->pose.rotation_matxx.point + 1) + 1));
+							}
+							else if (fabs(cart_next[4] + 3.1415926 / 2) < 1E-10)
+							{
+								cart_next[3] = 0;
+								cart_next[5] = -atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 0), *(*(p_motion_next->pose.rotation_matxx.point + 1) + 1));
+							}
+							else
+							{
+								cart_next[3] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 0) + 1) / cos(cart_next[4]), *(*(p_motion_next->pose.\
+									rotation_matxx.point + 0) + 0) / cos(cart_next[4]));
+								cart_next[5] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 2) / cos(cart_next[4]), *(*(p_motion_next->pose.\
+									rotation_matxx.point + 2) + 2) / cos(cart_next[4]));
+							}
+							//decompose the angular velocity to basical coordinate system
+							matxx_transpose(&p_motion_next->pose.rot_start, &rot_tmp);
+							matxx_multiply(&rot_tmp, &p_motion_next->pose.axis_vector, &tmp31);
+
+							// Wx  [ axis_x ]   
+							// Wy =[ axis_y ] * angular_vel
+							// Wz  [ axis_z ]
+							matxx_k_mult(p_motion_next->traj_cart_rot.vel, &tmp31);
+
+							w[0] = *(*(tmp31.point + 0) + 0);
+							w[1] = *(*(tmp31.point + 0) + 1);
+							w[2] = *(*(tmp31.point + 0) + 2);
+
+							// d a /d t          [ 0    sr    cr    ]   [ Wx ]
+							// d b /d t = 1/cb * [ 0    cscb  -srcb ] * [ Wy ]
+							// d r /d t          [ cb   srsb  crsb  ]   [ Wz ]
+							if (fabs(cart_next[4] - 3.1415926 / 2) < MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+							{
+								cart_vel_next[4] = w[1] / cos(cart_next[5]);
+								cart_vel_next[5] = -w[2] / sin(cart_next[5]);
+								cart_vel_next[3] = cart_vel_next[5] - w[0];
+
+							}
+							else
+							{
+								cart_vel_next[3] = 1 / cos(cart_next[4])*(sin(cart_next[5])*w[1] + cos(cart_next[5])* w[2]);
+								cart_vel_next[4] = 1 / cos(cart_next[4])*(cos(cart_next[5])*cos(cart_next[4])*w[1] - sin(cart_next[5])*cos(cart_next[4])*w[2]);
+								cart_vel_next[5] = w[0] + sin(cart_next[5])*tan(cart_next[4])*w[1] + cos(cart_next[5])*tan(cart_next[4])*w[2];
+							}
+
+							cart_next[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_next[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_next[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_vel_next[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_vel_next[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_vel_next[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+
+							/* Break the FOR */
+							break;
+						}
+					}
+				}
+
+				// blending in joint
+				else
+				{
+					for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+					{
+						for (counter = 0; counter < 8; counter++)
+						{
+							if ((blending_current_time > p_motion_next->traj_joint[joint_id].time_series[counter]) && \
+								(blending_current_time <= p_motion_next->traj_joint[joint_id].time_series[counter + 1]))
+							{
+								/* determine the time interval,and calculate the states in the time interval */
+								clock_time = blending_current_time - p_motion_next->traj_joint[joint_id].time_series[counter];
+								clock_time *= p_motion_next->prf_joint[joint_id].profile_sample_time;
+
+								calculate_acceleration_from_profile(clock_time,
+									p_motion_next->traj_joint[joint_id].jerk_series[counter],
+									p_motion_next->traj_joint[joint_id].acc_series[counter],
+									&p_motion_next->traj_joint[joint_id].acc);
+								calculate_velocity_from_profile(clock_time,
+									p_motion_next->traj_joint[joint_id].jerk_series[counter],
+									p_motion_next->traj_joint[joint_id].acc_series[counter],
+									p_motion_next->traj_joint[joint_id].vel_series[counter],
+									&p_motion_next->traj_joint[joint_id].vel);
+								calculate_position_from_profile(clock_time,
+									p_motion_next->traj_joint[joint_id].jerk_series[counter],
+									p_motion_next->traj_joint[joint_id].acc_series[counter],
+									p_motion_next->traj_joint[joint_id].vel_series[counter],
+									p_motion_next->traj_joint[joint_id].pos_series[counter],
+									&p_motion_next->traj_joint[joint_id].pos);
+								joint_next[joint_id] = (*(p_motion_next->pose.joint_start_vector.point))[joint_id] + p_motion_next->traj_joint[joint_id].pos;
+								joint_vel_next[joint_id] = p_motion_next->traj_joint[joint_id].vel;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+
+
+
+
+
+		/* calculate position ,cart and cart's blending or no blending*/
+		if (p_motion_next->prfcoord_type == COORD_TYPE_CART || !p_motion_next->blending.is_need_blending || (blending_current_time <= 0))
+		{
+			for (cart_id = 0; cart_id < p_config->cart_dim; cart_id++)
+			{
+				if (cart_id < 3)
+				{
+					/* update the motion states in Cartesian */
+					p_cart->cart_vel_cmd[cart_id] = line_vel * p_motion->pose.pose_unit_vector[cart_id];
+					p_cart->cart_pos_cmd[cart_id] = line_pos * p_motion->pose.pose_unit_vector[cart_id];
+
+					/* get the current pos command */
+					p_cart->cart_pos_cmd[cart_id] += p_motion->pose.pose_start[cart_id];
+				}
+				else
+				{
+					p_cart->cart_pos_cmd[cart_id] = cart[cart_id];
+					p_cart->cart_vel_cmd[cart_id] = cart_vel[cart_id];
+				}
+
+				cart[cart_id] = p_cart->cart_pos_cmd[cart_id];
+				cart_vel[cart_id] = p_cart->cart_vel_cmd[cart_id];
+			}
+			if ((p_motion_next->blending.is_need_blending) && (blending_current_time > 0))
+			{
+				//position blending in joint
+				ScaraIK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint,1);
+				ScaraIK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_next, joint_next,1);
+				//vel blending in joint
+				for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+				{
+					p_joint[joint_id].joint_pos_cmd = joint[joint_id];
+				}
+				ScaraBasicIJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+				for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+				{
+					p_joint[joint_id].joint_pos_cmd = joint_next[joint_id];
+				}
+				ScaraBasicIJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel_next, joint_vel_next);
+
+				for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+				{
+
+					p_joint[joint_id].joint_vel_cmd = joint_vel[joint_id] + joint_vel_next[joint_id];
+
+					p_joint[joint_id].joint_pos_cmd = joint[joint_id] + joint_next[joint_id] - (*p_motion->pose.joint_end_vector.point)[joint_id];
+
+					joint[joint_id] = p_joint[joint_id].joint_pos_cmd;
+					joint_vel[joint_id] = p_joint[joint_id].joint_vel_cmd;
+				}
+
+				ScaraFK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint);
+				ScaraBasicFJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+				for (cart_id = 0; cart_id < p_config->cart_dim; cart_id++)
+				{
+					p_cart->cart_pos_cmd[cart_id] = cart[cart_id];
+					p_cart->cart_vel_cmd[cart_id] = cart_vel[cart_id];
+				}
+			}
+			else
+			{
+				ScaraIK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint,1);
+
+				for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+				{
+					p_joint[joint_id].joint_pos_cmd = joint[joint_id];
+
+				}
+				ScaraBasicIJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel,1);
+
+				for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+				{
+					p_joint[joint_id].joint_vel_cmd = joint_vel[joint_id];
+
+				}
+			}
+		}
+		/* calculate position ,cart and joint's blending*/
+		else
+		{
+
+			for (cart_id = 0; cart_id < p_config->cart_trans_dim; cart_id++)
+			{
+				/* update the motion states in Cartesian */
+				p_cart->cart_vel_cmd[cart_id] = line_vel * p_motion->pose.pose_unit_vector[cart_id];
+				p_cart->cart_pos_cmd[cart_id] = line_pos * p_motion->pose.pose_unit_vector[cart_id];
+
+				/* get the current pos command */
+				p_cart->cart_pos_cmd[cart_id] += p_motion->pose.pose_start[cart_id];
+				cart[cart_id] = p_cart->cart_pos_cmd[cart_id];
+				cart_vel[cart_id] = p_cart->cart_vel_cmd[cart_id];
+			}
+
+			/* call inverse Kinematics */
+			ScaraIK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint,1);
+			for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+			{
+				p_joint[joint_id].joint_pos_cmd = joint[joint_id];
+			}
+			ScaraBasicIJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+
+			/* update joint states */
+			for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+			{
+				p_joint[joint_id].joint_vel_cmd = joint_vel[joint_id] + joint_vel_next[joint_id];
+
+				p_joint[joint_id].joint_pos_cmd = joint[joint_id] + joint_next[joint_id] - (*p_motion->pose.joint_end_vector.point)[joint_id];
+
+				joint[joint_id] = p_joint[joint_id].joint_pos_cmd;
+				joint_vel[joint_id] = p_joint[joint_id].joint_vel_cmd;
+			}
+
+
+			ScaraBasicFJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+			ScaraFK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint);
+
+			for (cart_id = 0; cart_id < p_config->cart_dim; cart_id++)
+			{
+				p_cart->cart_pos_cmd[cart_id] = cart[cart_id];
+				p_cart->cart_vel_cmd[cart_id] = cart_vel[cart_id];
+			}
+
+		}
+
+		/* finish */
+		if (p_trajectory->current_time >= p_motion->trajectory.time_series[7])
+		{
+
+			p_motion->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_IDL;
+
+			/* clear states */
+		
+			p_trajectory->current_time = 0;
+			p_trajectory->motion_block_execute = p_motion_next;
+			/*
+			if (gRobot.robot_dev[id].mode.mode == ROBOT_MODULE_SCRIPT_MODE)
+			{
+			/* back to calculate insert block *
+			if (gRobot.robot_dev[id].mode.resume_flag == 2)
+			{
+			gRobot.robot_dev[id].mode.resume_flag = 0;
+			while (p_trajectory->motion_block_calculate == TRAJECTORY_MODULE_MOTION_BLOCK_STATE_RUNNING)
+			{
+			p_trajectory->motion_block_calculate = get_next_motion_block(p_trajectory->motion_block_buffer, p_trajectory\
+			->motion_block_calculate);
+			}
+			}
+			/* inform to create new motion block ,then you can create new motion block*
+			rtems_semaphore_release(gRobot.robot_dev[id].mgr.script_task_sem);
+			}*/
+		}
+
+		break;
+	}
+
+
+	case TRAJECTORY_MODULE_MOTION_TYPE_CIRCL:
+	{
+		p_motion_next = get_next_motion_block(p_trajectory->motion_block_buffer, p_motion_next);
+
+		if ((!p_trajectory->current_time) && (p_motion_next->blending.is_need_blending))
+		{
+			/* when start motion, check the next blending condition first */
+			if (!p_motion_next->blending.is_ready_blending)
+			{
+				/* Wait to finish calculating the motion profile parameter and blending parameter*/
+				return 0;
+			}
+		}
+		// update clock
+		p_trajectory->current_time++;
+
+		//if the current need blending ,the before part has been execute at last block.
+		//so start from the blending finish clock
+		if (p_motion->blending.is_need_blending)
+		{
+			/* start motion at the time of finishing blending.*/
+			p_trajectory->current_time = p_motion->blending.blending_time_length + 1;
+			p_motion->blending.is_need_blending = 0; /* no need now, for blending is finished! */
+		}
+
+		/* Trajectory generated by a polynomial. */
+		for (counter = 0; counter < 7; counter++)
+		{
+			if ((p_trajectory->current_time > p_motion->trajectory.time_series[counter]) && \
+				(p_trajectory->current_time <= p_motion->trajectory.time_series[counter + 1]))
+			{
+				/* determine the time interval,and calculate the states in the time interval */
+				clock_time = p_trajectory->current_time - p_motion->trajectory.time_series[counter];
+				clock_time *= p_motion->profile.profile_sample_time;
+
+				calculate_acceleration_from_profile(clock_time,
+					p_motion->trajectory.jerk_series[counter],
+					p_motion->trajectory.acc_series[counter],
+					&p_motion->trajectory.acc);
+
+				calculate_velocity_from_profile(clock_time,
+					p_motion->trajectory.jerk_series[counter],
+					p_motion->trajectory.acc_series[counter],
+					p_motion->trajectory.vel_series[counter],
+					&p_motion->trajectory.vel);
+
+				calculate_position_from_profile(clock_time,
+					p_motion->trajectory.jerk_series[counter],
+					p_motion->trajectory.acc_series[counter],
+					p_motion->trajectory.vel_series[counter],
+					p_motion->trajectory.pos_series[counter],
+					&p_motion->trajectory.pos);
+				circle_pos = p_motion->trajectory.pos;
+				circle_vel = p_motion->trajectory.vel;
+				break;
+			}
+		}
+		for (counter = 0; counter < 7; counter++)
+		{
+			if ((p_trajectory->current_time > p_motion->traj_cart_rot.time_series[counter]) && \
+				(p_trajectory->current_time <= p_motion->traj_cart_rot.time_series[counter + 1]))
+			{
+				/* determine the time interval,and calculate the states in the time interval */
+				clock_time = p_trajectory->current_time - p_motion->traj_cart_rot.time_series[counter];
+				clock_time *= p_motion->profile.profile_sample_time;
+				//------------calculate the posture--------------------------
+				calculate_position_from_profile(clock_time,
+					p_motion->traj_cart_rot.jerk_series[counter],
+					p_motion->traj_cart_rot.acc_series[counter],
+					p_motion->traj_cart_rot.vel_series[counter],
+					p_motion->traj_cart_rot.pos_series[counter],
+					&p_motion->traj_cart_rot.pos);
+
+				calculate_velocity_from_profile(clock_time,
+					p_motion->traj_cart_rot.jerk_series[counter],
+					p_motion->traj_cart_rot.acc_series[counter],
+					p_motion->traj_cart_rot.vel_series[counter],
+					&p_motion->traj_cart_rot.vel);
+
+				break;
+			}
+		}
+
+		//angle-axis convert to rotate matrix
+		matxx_axisAngl2Rotm(p_motion->traj_cart_rot.pos,		//angle in rad
+			&p_motion->pose.axis_vector,		//axis
+			&p_motion->pose.rotation_matxx);
+		/*  B=R*A */
+		matxx_multiply(&p_motion->pose.rotation_matxx, &p_motion->pose.rot_start, &p_motion->pose.rotation_matxx);
+
+		/* calculate   pitch, roll, yaw */
+		cart[4] = atan2(-*(*(p_motion->pose.rotation_matxx.point + 0) + 2), pow(pow(*(*(p_motion->pose.\
+			rotation_matxx.point + 0) + 0), 2) + pow(*(*(p_motion->pose.rotation_matxx.point + 0) + 1), 2), 0.5));
+
+		if (fabs(cart[4] - 3.1415926 / 2)<1E-10)
+		{
+			cart[3] = 0;
+			cart[5] = atan2(*(*(p_motion->pose.rotation_matxx.point + 1) + 0), *(*(p_motion->pose.rotation_matxx.point + 1) + 1));
+		}
+		else if (fabs(cart[4] + 3.1415926 / 2)<1E-10)
+		{
+			cart[3] = 0;
+			cart[5] = -atan2(*(*(p_motion->pose.rotation_matxx.point + 1) + 0), *(*(p_motion->pose.rotation_matxx.point + 1) + 1));
+		}
+		else
+		{
+			cart[3] = atan2(*(*(p_motion->pose.rotation_matxx.point + 0) + 1) / cos(cart[4]), *(*(p_motion->pose.\
+				rotation_matxx.point + 0) + 0) / cos(cart[4]));
+			cart[5] = atan2(*(*(p_motion->pose.rotation_matxx.point + 1) + 2) / cos(cart[4]), *(*(p_motion->pose.\
+				rotation_matxx.point + 2) + 2) / cos(cart[4]));
+		}
+
+		matxx_copy(&p_motion->pose.axis_vector, &tmp31);
+
+		matxx_transpose(&p_motion->pose.rot_start, &rot_tmp);
+
+		matxx_multiply(&rot_tmp, &tmp31, &tmp31);
+
+		matxx_k_mult(p_motion->traj_cart_rot.vel, &tmp31);
+
+		w[0] = *(*(tmp31.point + 0) + 0);
+		w[1] = *(*(tmp31.point + 0) + 1);
+		w[2] = *(*(tmp31.point + 0) + 2);
+
+		cart_vel[3] = 1 / cos(cart[4])*(sin(cart[5])*w[1] + cos(cart[5])* w[2]);
+		cart_vel[4] = 1 / cos(cart[4])*(cos(cart[5])*cos(cart[4])*w[1] - sin(cart[5])*cos(cart[4])*w[2]);
+		cart_vel[5] = w[0] + sin(cart[5])*tan(cart[4])*w[1] + cos(cart[5])*tan(cart[4])*w[2];
+
+		cart[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+		cart[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+		cart[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+		cart_vel[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+		cart_vel[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+		cart_vel[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+
+		/* get position command
+		* P0 + [RotM(s,w) - I] * CP0 ,where : s is angle,w is axis
+		* */
+		// get arc length corresponding angle in Rad
+		circle_angle_delta = circle_pos*p_motion->pose.circle_radius_inv;
+
+		//angle-axis convert to rotate matrix
+		matxx_axisAngl2Rotm(-circle_angle_delta,		//angle in rad
+			&p_motion->pose.unit_vector,		//axis
+			&p_motion->pose.rotation_matxx);
+
+		// Let XYZ = P0
+		matxx_assign(&p_motion->pose.cartesian_xyz,
+			p_motion->pose.pose_start,
+			3);
+		/* RotM(s,w) - I */
+		for (counter = 0; counter < 3; counter++)
+		{
+			(*(p_motion->pose.rotation_matxx.point + counter))[counter] -= 1.0;
+		}
+
+		/* do rotation */
+		//cartesian_xyz = center_vector*rotation_matxx + cartesian_xyz(this is start pos)
+		matxx_mat_vec_opt(&p_motion->pose.center_vector,
+			&p_motion->pose.rotation_matxx,
+			1.0,
+			1.0,
+			&p_motion->pose.cartesian_xyz);
+
+		/* get velocity command
+		* dP(s(t))/dt = dP(s)/ds * ds(t)/dt   ---->s(t) is angle
+		* where ds(t)/dt  = w
+		* dP(s)/ds = dRotM(s,w)/ds * CP0, other part is constant ,so is zero
+		*
+		* and vel = dRotM(s,w)/ds * CP0 * w
+		* */
+		//v = w*r    w = v/r
+		circle_w = circle_vel* p_motion->pose.circle_radius_inv;
+		matxx_axisAngle2protm_t(circle_angle_delta, 1,			//angle
+			&p_motion->pose.unit_vector,	//axis
+			&p_motion->pose.rotation_matxx); //rotate matrix differential
+
+											 //matxx_copy(&p_motion->pose.rotation_matxx, &rot_tmp);
+											 //matxx_transpose(&rot_tmp, &p_motion->pose.rotation_matxx);
+
+		matxx_mat_vec_opt(&p_motion->pose.center_vector,	//cp0
+			&p_motion->pose.rotation_matxx,   //rotate matrix differential
+			circle_w,						    //w
+			0.0,
+			&cartesian_xyz_vel);
+
+		//---------------------------------------------------------------
+		/* get the command */
+		for (cart_id = 0; cart_id < p_config->cart_trans_dim; cart_id++)
+		{
+			matxx_get_element(&p_motion->pose.cartesian_xyz,
+				cart_id,
+				0,
+				&p_cart->cart_pos_cmd[cart_id]);
+
+			matxx_get_element(&cartesian_xyz_vel,
+				cart_id,
+				0,
+				&p_cart->cart_vel_cmd[cart_id]);
+			cart[cart_id] = p_cart->cart_pos_cmd[cart_id];
+			cart_vel[cart_id] = p_cart->cart_vel_cmd[cart_id];
+		}
+
+		//the next block need blending,so do the end blending ,which also is the next start blending
+		if (p_motion_next->blending.is_need_blending)
+		{
+			blending_current_time = p_trajectory->current_time - p_motion_next->blending.blending_start_time;
+			//blending_current_time = 0;
+			if (blending_current_time > 0)
+			{
+				if (p_motion_next->prfcoord_type == COORD_TYPE_CART)
+				{
+					for (counter = 0; counter < 7; counter++)
+					{
+						if ((blending_current_time > p_motion_next->trajectory.time_series[counter]) && \
+							(blending_current_time <= p_motion_next->trajectory.time_series[counter + 1]))
+						{
+							/* determine the time interval,and calculate the states in the time interval */
+							clock_time = blending_current_time - p_motion_next->trajectory.time_series[counter];
+							clock_time *= p_motion_next->profile.profile_sample_time;
+
+							calculate_acceleration_from_profile(clock_time,
+								p_motion_next->trajectory.jerk_series[counter],
+								p_motion_next->trajectory.acc_series[counter],
+								&p_motion_next->trajectory.acc);
+							calculate_velocity_from_profile(clock_time,
+								p_motion_next->trajectory.jerk_series[counter],
+								p_motion_next->trajectory.acc_series[counter],
+								p_motion_next->trajectory.vel_series[counter],
+								&p_motion_next->trajectory.vel);
+							calculate_position_from_profile(clock_time,
+								p_motion_next->trajectory.jerk_series[counter],
+								p_motion_next->trajectory.acc_series[counter],
+								p_motion_next->trajectory.vel_series[counter],
+								p_motion_next->trajectory.pos_series[counter],
+								&p_motion_next->trajectory.pos);
+							break;
+						}
+					}
+					if (p_motion_next->motion_type == TRAJECTORY_MODULE_MOTION_TYPE_LIN)
+					{
+						line_pos_next = p_motion_next->trajectory.pos;
+						line_vel_next = p_motion_next->trajectory.vel;
+						for (cart_id = 0; cart_id < p_config->cart_trans_dim; cart_id++)
+						{
+							cart_next[cart_id] = p_motion_next->pose.pose_start[cart_id] + line_pos_next * p_motion_next->pose.pose_unit_vector[cart_id];
+							cart_vel_next[cart_id] = line_vel_next * p_motion_next->pose.pose_unit_vector[cart_id];
+						}
+					}
+					else if (p_motion_next->motion_type == TRAJECTORY_MODULE_MOTION_TYPE_CIRCL)
+					{
+						circle_pos_next = p_motion_next->trajectory.pos;
+						circle_vel_next = p_motion_next->trajectory.vel;
+						/* get position command
+						* P0 + [RotM(s,w) - I] * CP0 ,where : s is angle,w is axis
+						* */
+						// get arc length corresponding angle in Rad
+						circle_angle_delta = circle_pos_next * p_motion_next->pose.circle_radius_inv;
+
+						//angle-axis convert to rotate matrix
+						matxx_axisAngl2Rotm(-circle_angle_delta,		//angle in rad
+							&p_motion_next->pose.unit_vector,		//axis
+							&p_motion_next->pose.rotation_matxx);
+
+						// Let XYZ = P0
+						matxx_assign(&p_motion_next->pose.cartesian_xyz,
+							p_motion_next->pose.pose_start,
+							3);
+						/* RotM(s,w) - I */
+						for (counter = 0; counter < 3; counter++)
+						{
+							(*(p_motion_next->pose.rotation_matxx.point + counter))[counter] -= 1.0;
+						}
+
+						/* do rotation */
+						//cartesian_xyz = center_vector*rotation_matxx + cartesian_xyz(this is start pos)
+						matxx_mat_vec_opt(&p_motion_next->pose.center_vector,
+							&p_motion_next->pose.rotation_matxx,
+							1.0,
+							1.0,
+							&p_motion_next->pose.cartesian_xyz);
+						/* get velocity command
+						* dP(s(t))/dt = dP(s)/ds * ds(t)/dt   ---->s(t) is angle
+						* where ds(t)/dt  = w
+						* dP(s)/ds = dRotM(s,w)/ds * CP0, other part is constant ,so is zero
+						*
+						* and vel = dRotM(s,w)/ds * CP0 * w
+						* */
+						//v = w*r    w = v/r
+						circle_w = circle_vel_next * p_motion_next->pose.circle_radius_inv;
+						matxx_axisAngle2protm_t(circle_angle_delta, 1,			//angle
+							&p_motion_next->pose.unit_vector,	//axis
+							&p_motion_next->pose.rotation_matxx); //rotate matrix differential
+
+						
+						matxx_mat_vec_opt(&p_motion_next->pose.center_vector,	//cp0
+							&p_motion_next->pose.rotation_matxx,   //rotate matrix differential
+							circle_w,						    //w
+							0.0,
+							&cartesian_xyz_vel);
+						for (cart_id = 0; cart_id < p_config->cart_trans_dim; cart_id++)
+						{
+							cart_next[cart_id] = *(*(p_motion_next->pose.cartesian_xyz.point + 0) + cart_id);
+							cart_vel_next[cart_id] = *(*(cartesian_xyz_vel.point + 0) + cart_id);
+						}
+					}
+					else
+					{
+						return -1;
+					}
+
+					//calculate the posture.
+					// when blending ,position and posture have the same time.
+					for (counter = 0; counter < 7; counter++)
+					{
+						if ((blending_current_time > p_motion_next->traj_cart_rot.time_series[counter]) && \
+							(blending_current_time <= p_motion_next->traj_cart_rot.time_series[counter + 1]))
+						{
+							/* determine the time interval,and calculate the states in the time interval */
+							clock_time = blending_current_time - p_motion_next->traj_cart_rot.time_series[counter];
+							clock_time *= p_motion_next->profile.profile_sample_time;
+							//calculate pos
+							calculate_position_from_profile(clock_time,
+								p_motion_next->traj_cart_rot.jerk_series[counter],
+								p_motion_next->traj_cart_rot.acc_series[counter],
+								p_motion_next->traj_cart_rot.vel_series[counter],
+								p_motion_next->traj_cart_rot.pos_series[counter],
+								&p_motion_next->traj_cart_rot.pos);
+
+							calculate_velocity_from_profile(clock_time,
+								p_motion_next->traj_cart_rot.jerk_series[counter],
+								p_motion_next->traj_cart_rot.acc_series[counter],
+								p_motion_next->traj_cart_rot.vel_series[counter],
+								&p_motion_next->traj_cart_rot.vel);
+
+							//angle-axis convert to rotate matrix
+							matxx_axisAngl2Rotm(p_motion_next->traj_cart_rot.pos,		//angle in rad
+								&p_motion_next->pose.axis_vector,		//axis
+								&p_motion_next->pose.rotation_matxx);
+							/*  B=R*A */
+							matxx_multiply(&p_motion_next->pose.rotation_matxx, &p_motion_next->pose.rot_start, &p_motion_next->pose.rotation_matxx);
+
+							/* calculate   pitch, roll, yaw */
+							/* calculate   pitch, roll, yaw */
+							cart_next[4] = atan2(-*(*(p_motion_next->pose.rotation_matxx.point + 0) + 2), pow(pow(*(*(p_motion_next->pose.\
+								rotation_matxx.point + 0) + 0), 2) + pow(*(*(p_motion_next->pose.rotation_matxx.point + 0) + 1), 2), 0.5));
+
+							if (fabs(cart_next[4] - 3.1415926 / 2) < MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+							{
+								cart_next[3] = 0;
+								cart_next[5] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 0), *(*(p_motion_next->pose.rotation_matxx.point + 1) + 1));
+							}
+							else if (fabs(cart_next[4] + 3.1415926 / 2) < MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+							{
+								cart_next[3] = 0;
+								cart_next[5] = -atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 0), *(*(p_motion_next->pose.rotation_matxx.point + 1) + 1));
+							}
+							else
+							{
+								cart_next[3] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 0) + 1) / cos(cart_next[4]), *(*(p_motion_next->pose.\
+									rotation_matxx.point + 0) + 0) / cos(cart_next[4]));
+								cart_next[5] = atan2(*(*(p_motion_next->pose.rotation_matxx.point + 1) + 2) / cos(cart_next[4]), *(*(p_motion_next->pose.\
+									rotation_matxx.point + 2) + 2) / cos(cart_next[4]));
+							}
+							//decompose the angular velocity to basical coordinate system
+							matxx_transpose(&p_motion_next->pose.rot_start, &rot_tmp);
+							matxx_multiply(&rot_tmp, &p_motion_next->pose.axis_vector, &tmp31);
+
+							// Wx  [ axis_x ]   
+							// Wy =[ axis_y ] * angular_vel
+							// Wz  [ axis_z ]
+							matxx_k_mult(p_motion_next->traj_cart_rot.vel, &tmp31);
+
+							w[0] = *(*(tmp31.point + 0) + 0);
+							w[1] = *(*(tmp31.point + 0) + 1);
+							w[2] = *(*(tmp31.point + 0) + 2);
+
+							// d a /d t          [ 0    sr    cr    ]   [ Wx ]
+							// d b /d t = 1/cb * [ 0    cscb  -srcb ] * [ Wy ]
+							// d r /d t          [ cb   srsb  crsb  ]   [ Wz ]
+							if (fabs(cart_next[4] - 3.1415926 / 2) < MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+							{
+								cart_vel_next[4] = w[1] / cos(cart_next[5]);
+								cart_vel_next[5] = -w[2] / sin(cart_next[5]);
+								cart_vel_next[3] = cart_vel_next[5] - w[0];
+
+							}
+							else
+							{
+								cart_vel_next[3] = 1 / cos(cart_next[4])*(sin(cart_next[5])*w[1] + cos(cart_next[5])* w[2]);
+								cart_vel_next[4] = 1 / cos(cart_next[4])*(cos(cart_next[5])*cos(cart_next[4])*w[1] - sin(cart_next[5])*cos(cart_next[4])*w[2]);
+								cart_vel_next[5] = w[0] + sin(cart_next[5])*tan(cart_next[4])*w[1] + cos(cart_next[5])*tan(cart_next[4])*w[2];
+							}
+
+							cart_next[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_next[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_next[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_vel_next[3] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_vel_next[4] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+							cart_vel_next[5] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+
+							/* Break the FOR */
+							break;
+						}
+					}
+				}
+
+				// blending in joint
+				else
+				{
+					for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+					{
+						for (counter = 0; counter<8; counter++)
+						{
+							if ((blending_current_time > p_motion_next->traj_joint[joint_id].time_series[counter]) && \
+								(blending_current_time <= p_motion_next->traj_joint[joint_id].time_series[counter + 1]))
+							{
+								/* determine the time interval,and calculate the states in the time interval */
+								clock_time = blending_current_time - p_motion_next->traj_joint[joint_id].time_series[counter];
+								clock_time *= p_motion_next->prf_joint[joint_id].profile_sample_time;
+
+								calculate_acceleration_from_profile(clock_time,
+									p_motion_next->traj_joint[joint_id].jerk_series[counter],
+									p_motion_next->traj_joint[joint_id].acc_series[counter],
+									&p_motion_next->traj_joint[joint_id].acc);
+								calculate_velocity_from_profile(clock_time,
+									p_motion_next->traj_joint[joint_id].jerk_series[counter],
+									p_motion_next->traj_joint[joint_id].acc_series[counter],
+									p_motion_next->traj_joint[joint_id].vel_series[counter],
+									&p_motion_next->traj_joint[joint_id].vel);
+								calculate_position_from_profile(clock_time,
+									p_motion_next->traj_joint[joint_id].jerk_series[counter],
+									p_motion_next->traj_joint[joint_id].acc_series[counter],
+									p_motion_next->traj_joint[joint_id].vel_series[counter],
+									p_motion_next->traj_joint[joint_id].pos_series[counter],
+									&p_motion_next->traj_joint[joint_id].pos);
+								joint_next[joint_id] = (*(p_motion_next->pose.joint_start_vector.point))[joint_id] + p_motion_next->traj_joint[joint_id].pos;
+								joint_vel_next[joint_id] = p_motion_next->traj_joint[joint_id].vel;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		/* calculate position ,cart and cart's blending or no blending*/
+		if (p_motion_next->prfcoord_type == COORD_TYPE_CART || !p_motion_next->blending.is_need_blending || (blending_current_time <= 0))
+		{
+			ScaraIK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint,1);
+
+			for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+			{
+				p_joint[joint_id].joint_pos_cmd = joint[joint_id];
+			}
+			ScaraBasicIJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+			for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+			{
+				p_joint[joint_id].joint_vel_cmd = joint_vel[joint_id];
+			}
+
+			if ((p_motion_next->blending.is_need_blending) && (blending_current_time > 0))
+			{
+				ScaraIK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_next, joint_next,1);
+				for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+				{
+					p_joint[joint_id].joint_pos_cmd = joint_next[joint_id];
+				}
+				ScaraBasicIJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel_next, joint_vel_next);
+
+				for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+				{
+					p_joint[joint_id].joint_vel_cmd = joint_vel[joint_id] + joint_vel_next[joint_id];
+
+					p_joint[joint_id].joint_pos_cmd = joint[joint_id] + joint_next[joint_id] - (*p_motion->pose.joint_end_vector.point)[joint_id];
+
+					joint[joint_id] = p_joint[joint_id].joint_pos_cmd;
+					joint_vel[joint_id] = p_joint[joint_id].joint_vel_cmd;
+				}
+				ScaraFK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint);
+				ScaraBasicFJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+			}
+
+			for (cart_id = 0; cart_id < p_config->cart_dim; cart_id++)
+			{
+				/* update the motion states in Cartesian */
+				p_cart->cart_vel_cmd[cart_id] = cart_vel[cart_id];
+				p_cart->cart_pos_cmd[cart_id] = cart[cart_id];
+			}
+
+
+		}
+		/* calculate position ,cart and joint's blending */
+		else
+		{
+
+			for (cart_id = 0; cart_id < p_config->cart_dim; cart_id++)
+			{
+				/* update the motion states in Cartesian */
+				p_cart->cart_vel_cmd[cart_id] = cart_vel[cart_id];
+				p_cart->cart_pos_cmd[cart_id] = cart[cart_id];
+			}
+			/* call inverse Kinematics */
+			ScaraIK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint,1);
+			for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+			{
+				p_joint[joint_id].joint_pos_cmd = joint[joint_id];
+			}
+			ScaraBasicIJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+
+			/* update joint states */
+			for (joint_id = 0; joint_id < p_config->joint_dim; joint_id++)
+			{
+				p_joint[joint_id].joint_vel_cmd = joint_vel[joint_id] + joint_vel_next[joint_id];
+
+				p_joint[joint_id].joint_pos_cmd = joint[joint_id] + joint_next[joint_id] - (*p_motion->pose.joint_end_vector.point)[joint_id];
+
+				joint[joint_id] = p_joint[joint_id].joint_pos_cmd;
+				joint_vel[joint_id] = p_joint[joint_id].joint_vel_cmd;
+			}
+
+			ScaraFK(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart, joint);
+			ScaraBasicFJ(p_cart, p_joint, &p_RobMod->kinematics, p_config, cart_vel, joint_vel);
+			/* update joint states */
+			// position
+			for (cart_id = 0; cart_id < p_config->cart_dim; cart_id++)
+			{
+				// update the motion states in Cartesian 
+				p_cart->cart_vel_cmd[cart_id] = cart_vel[cart_id];
+				p_cart->cart_pos_cmd[cart_id] = cart[cart_id];
+			}
+		}
+
+		//-------------------- blending end ---------------------
+		/* finish */
+		if (p_trajectory->current_time >= p_motion->trajectory.time_series[7])
+		{
+		
+			p_motion->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_IDL;
+
+			/* clear states */
+			p_trajectory->current_time = 0;
+			p_trajectory->motion_block_execute = p_motion_next;
+			/*
+			if (gRobot.robot_dev[id].mode.mode == ROBOT_MODULE_SCRIPT_MODE)
+			{
+			/* back to calculate insert block *
+			if (gRobot.robot_dev[id].mode.resume_flag == 2)
+			{
+			gRobot.robot_dev[id].mode.resume_flag = 0;
+			while (p_trajectory->motion_block_calculate != TRAJECTORY_MODULE_MOTION_BLOCK_STATE_USED)
+			{
+			p_trajectory->motion_block_calculate = get_next_motion_block(p_trajectory->motion_block_buffer, p_trajectory\
+			->motion_block_calculate);
+			}
+			}
+			/* inform to create new motion block ,then you can create new motion block*
+			rtems_semaphore_release(gRobot.robot_dev[id].mgr.script_task_sem);
+			}*/
+		}
+
+		break;
+	}
+	case TRAJECTORY_MODULE_MOTION_TYPE_NONE:
+	default:
+		break;
+	}
+	matxx_delete(&rot_tmp);
+	matxx_delete(&cartesian_xyz_vel);
+	matxx_delete(&cartesian_xyz_vel_next);
+	matxx_delete(&tmp31);
+	return 0;
+
+}

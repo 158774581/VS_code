@@ -307,5 +307,7 @@ int16 conveyor_tracking_mode(conveyor_tracking* p_cnv_trck, robot_config_module*
 							 robot_coordinate_system* p_cs, cartesian_module* p_cart, joint_module* p_joint, Uint8 id);
 
 int16 PIDTrack(conveyor* cnv, cartesian_module* p_cart, joint_module* p_joint, robot_config_module* cfg);
+
+int16 cnv_rbt_traj_gen(trajectory_module* p_trajectory, cartesian_module* p_cart, joint_module* p_joint, robot_config_module* p_config, double* err, Uint8 id);
 #endif // !CONVEYOR_TRACKING_H_
 

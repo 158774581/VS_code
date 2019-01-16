@@ -308,7 +308,6 @@ int16 td_TrajectoryGenerator(Uint8 id)
 void main()
 {
 	Uint8 id = 0;
-
 	InitRobot(&gRobot);
 
 	conveyor_tracking* p_cnv_trck = &gRobot.robot_dev[0].cnv_trck;

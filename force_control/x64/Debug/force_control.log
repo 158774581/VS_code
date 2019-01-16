@@ -1,26 +1,104 @@
-﻿  motion_planning_non_zero_main.c
-  motion_planning_3rd.c
+﻿  trajectory_generator.c
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(26): warning C4244: “=”: 从“const Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(47): warning C4244: “=”: 从“const Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(87): warning C4113: “int16 (__cdecl *)(trajectory_module *,robot_config_module *,double *,double *,double *,double *,double *,Uint8,Uint8)”和“int16 (__cdecl *)(TRAJECTORY_MODULE *,robot_config_module *,double *,double *,double *,double *,Uint8,Uint8)”的参数列表不同
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(101): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(102): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(103): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(104): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(105): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(140): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(141): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(142): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(143): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(144): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(284): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(301): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(318): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(817): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(823): warning C4098: “calculate_motion_profile_of_cnv_rbt”:“void”函数返回值
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(886): warning C4013: “calculate_acceleration_from_profile_”未定义；假设外部返回 int
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(891): warning C4013: “calculate_velocity_from_profile_”未定义；假设外部返回 int
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(897): warning C4013: “calculate_position_from_profile_”未定义；假设外部返回 int
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(911): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(1038): warning C4098: “calculate_motion_profile_of_cnv_rbt”:“void”函数返回值
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(1143): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(1642): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(1682): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(2178): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(2218): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(1051): warning C4101: “theta_tmp”: 未引用的局部变量
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(2288): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(2411): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(2534): warning C4244: “=”: 从“double”转换到“Uint32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(3025): warning C4244: “=”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(3075): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(3450): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(3451): warning C4018: “<=”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(3501): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(3502): warning C4018: “<=”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(3529): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(3530): warning C4018: “<=”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4146): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4147): warning C4018: “<=”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4252): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4253): warning C4018: “<=”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4371): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4372): warning C4018: “<=”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4882): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4883): warning C4018: “<=”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4985): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(4986): warning C4018: “<=”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(5111): warning C4018: “>”: 有符号/无符号不匹配
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\trajectory_generator.c(5112): warning C4018: “<=”: 有符号/无符号不匹配
+  robot_module.c
+  robot_device.c
+  robot_app.c
+  motion_block.c
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\robot_mode.h(47): warning C4010: 单行注释包含行继续符
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\traj_profile.h(62): warning C4086: 杂注参数应为“1”、“2”、“4”、“8”或者“16”
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\traj_profile.h(73): warning C4086: 杂注参数应为“1”、“2”、“4”、“8”或者“16”
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\traj_profile.h(91): warning C4086: 杂注参数应为“1”、“2”、“4”、“8”或者“16”
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\traj_profile.h(146): warning C4086: 杂注参数应为“1”、“2”、“4”、“8”或者“16”
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\traj_gen.h(12): warning C4103: 包括标题后更改了对齐方式，可能是由于缺少 #pragma pack(pop)
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\location.h(75): warning C4086: 杂注参数应为“1”、“2”、“4”、“8”或者“16”
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\location.h(94): warning C4086: 杂注参数应为“1”、“2”、“4”、“8”或者“16”
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\location.h(134): warning C4086: 杂注参数应为“1”、“2”、“4”、“8”或者“16”
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\motion_block.c(2): warning C4103: 包括标题后更改了对齐方式，可能是由于缺少 #pragma pack(pop)
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\motion_block.c(19): warning C4013: “Sleep”未定义；假设外部返回 int
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\motion_block.c(49): warning C4244: “函数”: 从“Uint16”转换到“Uint8”，可能丢失数据
   conveyor_tracking_main.c
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(142): warning C4244: “函数”: 从“Uint64”转换到“unsigned int”，可能丢失数据
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(135): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(142): warning C4244: “函数”: 从“Uint64”转换到“unsigned int”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(135): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(167): warning C4244: “=”: 从“int16”转换到“int8”，可能丢失数据
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(200): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(167): warning C4244: “=”: 从“int16”转换到“int8”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(200): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(201): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(201): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(360): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(359): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(361): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(360): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(362): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(361): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(363): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(362): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(364): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(363): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
-c:\users\hqi\documents\visual studio 2017\projects\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(365): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking_main.c(364): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+  conveyor_tracking.c
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking.c(341): warning C4244: “=”: 从“double”转换到“int32”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking.c(506): warning C4244: “函数”: 从“Uint64”转换到“unsigned int”，可能丢失数据
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\conveyor_tracking.c(799): warning C4244: “初始化”: 从“Uint16”转换到“Uint8”，可能丢失数据
+  cnv_trck_main.c
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\robot_mode.h(47): warning C4010: 单行注释包含行继续符
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\cnv_trck_main.c(50): warning C4047: “初始化”:“joint_module *”与“joint_module (*)[8]”的间接级别不同
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\cnv_trck_main.c(90): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
+e:\vs2017_work_space\robot_coordinate_system20181017\force_control\cnv_trck_main.c(91): warning C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
   c:\program files (x86)\windows kits\10\include\10.0.15063.0\ucrt\stdio.h(207): note: 参见“fopen”的声明
   正在生成代码...
-  force_control.vcxproj -> C:\Users\hqi\Documents\Visual Studio 2017\Projects\robot_coordinate_system20181017\x64\Debug\matrix_pallas.exe
-  force_control.vcxproj -> C:\Users\hqi\Documents\Visual Studio 2017\Projects\robot_coordinate_system20181017\x64\Debug\matrix_pallas.pdb (Partial PDB)
+  force_control.vcxproj -> E:\vs2017_work_space\robot_coordinate_system20181017\x64\Debug\matrix_pallas.exe
+  force_control.vcxproj -> E:\vs2017_work_space\robot_coordinate_system20181017\x64\Debug\matrix_pallas.pdb (Partial PDB)

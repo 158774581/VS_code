@@ -154,6 +154,7 @@
     <ClInclude Include="joint_module.h" />
     <ClInclude Include="kinematics.h" />
     <ClInclude Include="lib_scara.h" />
+    <ClInclude Include="location.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="motion_planning_3rd.h" />
     <ClInclude Include="robot_app.h" />
@@ -161,6 +162,8 @@
     <ClInclude Include="robot_coordinate_system.h" />
     <ClInclude Include="robot_ctl_utility.h" />
     <ClInclude Include="robot_device.h" />
+    <ClInclude Include="robot_header_files.h" />
+    <ClInclude Include="robot_macro_def.h" />
     <ClInclude Include="robot_mode.h" />
     <ClInclude Include="robot_module.h" />
     <ClInclude Include="solver.h" />
@@ -168,6 +171,8 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="torque_generator.h" />
     <ClInclude Include="trajectory_generator.h" />
+    <ClInclude Include="traj_Gen.h" />
+    <ClInclude Include="traj_profile.h" />
     <ClInclude Include="type_def.h" />
   </ItemGroup>
   <ItemGroup>
@@ -192,7 +197,8 @@
     </ClCompile>
     <ClCompile Include="joint_module.c" />
     <ClCompile Include="kinematics.c" />
-    <ClCompile Include="motion_planning_non_zero_main.c" />
+    <ClCompile Include="cnv_trck_main.c" />
+    <ClCompile Include="motion_block.c" />
     <ClCompile Include="robot_app.c" />
     <ClCompile Include="robot_config.c" />
     <ClCompile Include="robot_coordinate_system.c" />

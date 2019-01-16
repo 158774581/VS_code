@@ -213,6 +213,21 @@
     <ClInclude Include="cartsian_module.h">
       <Filter>robot_control\include</Filter>
     </ClInclude>
+    <ClInclude Include="robot_header_files.h">
+      <Filter>utility</Filter>
+    </ClInclude>
+    <ClInclude Include="location.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="traj_profile.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="robot_macro_def.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
+    <ClInclude Include="traj_Gen.h">
+      <Filter>robot_control\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.c">
@@ -299,8 +314,11 @@
     <ClCompile Include="cartesian_module.c">
       <Filter>robot_control\src</Filter>
     </ClCompile>
-    <ClCompile Include="motion_planning_non_zero_main.c">
+    <ClCompile Include="cnv_trck_main.c">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="motion_block.c">
+      <Filter>robot_control\src</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

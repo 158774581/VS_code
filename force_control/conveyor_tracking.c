@@ -4,7 +4,7 @@
 *  Created on: Nov 26, 2018
 *      Author: hqi
 */
-
+#include "robot_ctl_utility.h"
 #include "conveyor_tracking.h"
 #include "string.h"
 #include "stdio.h"
@@ -68,7 +68,7 @@ int16 InitConveyor(conveyor* cnv, Uint8 id,Uint8 robot_id)
 	memset(cnv->pid.Ierr, 0, 3 * sizeof(double));
 	memset(cnv->pid.err, 0, 3 * sizeof(double));
 	memset(cnv->pid.m, 0, 3 * sizeof(double));
-	cnv->pid.Kp = 1.1;
+	cnv->pid.Kp = 1;
 	cnv->pid.Td = 0.01;
 	cnv->pid.Ti = 1000.0;
 	cnv->pid.Ierr_max = 2;
@@ -571,7 +571,7 @@ int16 conveyor_tracking_mode(conveyor_tracking* p_cnv_trck, robot_config_module*
 			//printf("current time:%d ms\n", cur_time.cur_ticks);
 			if (cnv->intercept_sts == INTERCEPT_APPROACH)
 			{
-				cnv->state = PICK_CHASE;
+				cnv->state = PICK_TRACKING;
 				cnv->intercept_sts = INTERCEPT_IDLE;
 
 				// intercept error 
@@ -714,5 +714,185 @@ int16 conveyor_tracking_mode(conveyor_tracking* p_cnv_trck, robot_config_module*
 		break;
 	}
 
+	return 0;
+}
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------
+//计算笛卡尔下规划
+//----------------------------------------------------------------------------------------------------
+int16 CalcTrajProfile(motion_trajectory* traj, double clock_time, Uint8 counter)
+{
+	//-------------------------------------------------------
+	//计算加速度
+	calculate_acceleration_from_profile(clock_time,
+		traj->jerk_series[counter],
+		traj->acc_series[counter],
+		&traj->acc);
+	//-------------------------------------------------------
+	//计算速度
+	calculate_velocity_from_profile(clock_time,
+		traj->jerk_series[counter],
+		traj->acc_series[counter],
+		traj->vel_series[counter],
+		&traj->vel);
+	//-------------------------------------------------------
+	//计算位置
+	calculate_position_from_profile(clock_time,
+		traj->jerk_series[counter],
+		traj->acc_series[counter],
+		traj->vel_series[counter],
+		traj->pos_series[counter],
+		&traj->pos);
+	//-------------------------------------------------------
+	return 0;
+}
+//----------------------------------------------------------------------------------------
+//笛卡尔下时间缩放方法。对位置和姿态进行计算，因为时间缩放位置规划和姿态的规划的每个时间段不对应，因此分为两个部分分别计算
+//----------------------------------------------------------------------------------------
+int16 CartAxisSyncTimeScale(trajectory_module* p_trajectory, motion_block* p_motion, robot_config_module* p_config)
+{
+	Uint8 counter = 0;
+	Uint8 i		  = 0;
+	//-------------------------------------------------------------------
+	double clock_time = 0.0;
+	//-------------------------------------------------------------------
+	//位置
+	//-------------------------------------------------------------------
+	for (i = 0; i < p_config->cart_trans_dim+1; i++)
+	{
+		for (counter = 0; counter < 7; counter++)
+		{
+			if ((p_trajectory->current_time > p_motion->traj_cart_xyz_poseture[i].time_series[counter]) && \
+				(p_trajectory->current_time <= p_motion->traj_cart_xyz_poseture[i].time_series[counter + 1]))
+			{
+				/* determine the time interval,and calculate the states in the time interval */
+				clock_time = p_trajectory->current_time - p_motion->traj_cart_xyz_poseture[i].time_series[counter];
+				clock_time *= p_trajectory->period_time;
+
+				//-------------------------------------------------------------
+				//计算当前的平移xyz规划
+				//-------------------------------------------------------------
+				if (i == p_config->cart_trans_dim && p_motion->pose.axis_angle_flag != 1)
+				{
+					p_motion->traj_cart_xyz_poseture[i].acc = 0;
+					p_motion->traj_cart_xyz_poseture[i].vel = 0;
+					p_motion->traj_cart_xyz_poseture[i].pos = 0;
+				}
+				else
+				{
+					CalcTrajProfile(&(p_motion->traj_cart_xyz_poseture[i]), clock_time, counter);			
+				}
+
+				break;
+			}
+		}
+	}
+	return 0;
+}
+
+// 传送带上机器人的运动轨迹产生。每个运动块有始末速度，在机器人运动过程中叠加传送带与预期位置的误差，使得机器人末位置和速度与工件一致。
+int16 cnv_rbt_traj_gen(trajectory_module* p_trajectory, cartesian_module* p_cart, joint_module* p_joint, robot_config_module* p_config,double* err, Uint8 id)
+{
+	Uint8 i					= 0;
+	double cart[6]			= { 0,0,0,0,0,0 };
+	double cart_vel[6]		= { 0,0,0,0,0,0 };
+	Uint8 pose_id			= p_config->cart_trans_dim;
+	//---------------------------------------------------------------------
+	//指向执行的运动块
+	//---------------------------------------------------------------------
+	motion_block* 			p_motion = p_trajectory->motion_block_execute;
+	motion_block* 			p_next_motion = p_trajectory->motion_block_execute;
+	motion_block* 			p_last_motion = p_trajectory->motion_block_execute;
+
+	//-------------------------------------------------------------------
+	// 假如当前指向的执行运动块不是可以运行的状态，那么直接返回
+	//-------------------------------------------------------------------
+	if (p_motion->state < TRAJECTORY_MODULE_MOTION_BLOCK_STATE_RUNNING)
+	{
+		//if (gRobot.robot_dev[id].mode.sct.stop_script_flag == true)
+		//{
+		//	gRobot.robot_dev[id].mode.sct.stop_script_flag = false;
+		//}
+		//// 清除运动块个数
+		//gRobot.robot_dev[id].mode.rmacro.block_nr = 0;
+		//设置状态
+		gRobot.robot_dev[id].status = ROBOT_DEV_STS_STOP;
+		return 0;
+	}
+	gRobot.robot_dev[id].status = ROBOT_DEV_STS_RUN;
+
+	p_next_motion = get_next_motion_block(p_trajectory->motion_block_buffer, p_next_motion);
+	p_last_motion = get_last_motion_block(p_trajectory->motion_block_buffer, p_last_motion);
+
+	p_trajectory->current_time++;
+	//p_motion->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_RUNNING;
+
+	//-----------------------------------------------------------------
+	// 轨迹生成模块，根据不同的运动类型，进行不同的轨迹计算
+	//-----------------------------------------------------------------
+	switch (p_motion->motion_type)
+	{
+	case TRAJECTORY_MODULE_MOTION_TYPE_LIN: // line motion in Cartesian
+	{
+		CartAxisSyncTimeScale(p_trajectory, p_motion, p_config);
+
+		for (i = 0; i < p_config->cart_trans_dim; i++)
+		{
+			cart[i]			= p_motion->traj_cart_xyz_poseture[i].pos;
+			cart_vel[i]		= p_motion->traj_cart_xyz_poseture[i].vel;
+		}
+		//----------------------------------------------------------------------------------------------------
+		//计算当前的姿态,从轴角转化成固定角
+		//----------------------------------------------------------------------------------------------------
+		if (p_motion->pose.axis_angle_flag == 1)
+		{
+			//angle-axis convert to rotate matrix
+			matxx_axisAngl2Rotm(p_motion->traj_cart_xyz_poseture[pose_id].pos,		//angle in rad
+				&p_motion->pose.axis_vector,		//axis
+				&p_motion->pose.rotation_matxx);
+
+			/*  B=R*A */
+			matxx_multiply(&p_motion->pose.rotation_matxx, &p_motion->pose.rot_start, &p_motion->pose.rotation_matxx);
+
+			// 旋转矩阵转化为固定角
+			r2xyz(&p_motion->pose.rotation_matxx, &cart[3], 1);
+			//-------------------------------------------------------------------------------------------
+			//decouple axis to xyz to calculate the vel
+			matxx_transpose(&p_motion->pose.rot_start, &p_motion->pose.rot_tmp);
+
+			//convert the axis to the base
+			matxx_multiply(&p_motion->pose.rot_tmp, &p_motion->pose.axis_vector, &p_motion->pose.tmp31);
+
+			// vel map to the axis
+			matxx_k_mult(p_motion->traj_cart_xyz_poseture[pose_id].vel, &p_motion->pose.tmp31);
+
+			axisvel2dxyz(&p_motion->pose.tmp31, &cart[3], &cart_vel[3], 0);
+		}
+		else
+		{
+			cart[3] = p_motion->pose.pose_start[3];
+			cart[4] = p_motion->pose.pose_start[4];
+			cart[5] = p_motion->pose.pose_start[5];
+			cart_vel[3] = 0;
+			cart_vel[4] = 0;
+			cart_vel[5] = 0;
+
+		}
+		extern FILE* cnv_fp1;
+		extern FILE* cnv_fp2;
+		fprintf(cnv_fp1, "%lf  %lf  %lf  %lf  %lf  %lf\n", cart[0], cart[1], cart[2], cart[3], cart[4], cart[5]);
+		fprintf(cnv_fp2, "%lf  %lf  %lf  %lf  %lf  %lf\n", cart_vel[0], cart_vel[1], cart_vel[2], cart_vel[3], cart_vel[4], cart_vel[5]);
+
+		if (p_trajectory->current_time >= p_motion->traj_cart_xyz_poseture[0].time_series[7])
+		{
+			p_trajectory->current_time = 0;
+			p_motion->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_IDL;
+			p_trajectory->motion_block_execute = p_next_motion;
+		}
+		break;
+	}
+	default:
+		break;
+	}
 	return 0;
 }

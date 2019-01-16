@@ -572,6 +572,475 @@ void calculate_motion_profile_with_limited_jerk(motion_block* p_motion, Uint8 ty
 	return;
 }
 
+//------------------------------------------------------------------------
+// 由于笛卡尔空间的初速度方向与位移方向不相等，所以必须分别在x,y,z方向进行运动规划。最后为了与0边界的梯形规划统一，将x,y,z方向的规划合成。
+void calculate_motion_profile_of_cnv_rbt(motion_block* p_motion, Uint8 type, Uint8 sync_method)
+{
+	MOTION_PLANNING_3RD profile_memory;
+	MOTION_PLANNING_NON_ZERO_PRM input;
+	MOTION_PLANNING_PRM input_0;
+	Uint8 counter = 0;
+	double time_interval = 0;
+	Uint8 trans_dim = 3;
+	Uint8 dim = 4;
+	Uint8 i = 0;
+	double Tmax = 0;
+	Uint8  Tmax_id = 0;
+	double k = 0;
+	double k2 = 0;
+	double k3 = 0;
+	double vmax_tmp = 0;
+	double j1_tmp = 0;
+	double j2_tmp = 0;
+	Uint8 non_zero_boundary_flag = 0;
+	Uint32* p_db = NULL;
+	double theta_tmp	= 0;
+	double pos = 0;
+	double vs = 0;
+	double ve = 0;
+
+	motion_trajectory* p_traj = &p_motion->traj_cart_xyz_poseture[0];
+	matxx_malloc(&p_motion->pose.rot_start, 3, 3);
+	matxx_malloc(&p_motion->pose.rot_end, 3, 3);
+	matxx_malloc(&p_motion->pose.rot_tmp, 3, 3);
+	matxx_malloc(&p_motion->pose.rotation_matxx, 3, 3);
+	matxx_malloc(&p_motion->pose.axis_vector, 3, 1);
+	
+	if (type != COORD_TYPE_CART_TRANS)
+	{
+		printf("传送带跟踪应该为笛卡尔空间直线运动\n");
+		return;
+	}
+	input.spd_max = 100;
+	input.acc_max = 25;
+	input.t_acc = 0.1;
+	input.max_itera_time = 30;
+	input.scale = 1.0;
+	input.secant_eps = 0.001;
+
+	input_0.spd_max = 100;
+	input_0.dec_max = 25;
+	input_0.acc_max = 25;
+	input_0.t_acc = 0.1;
+	input_0.t_dec = 0.1;
+
+	//===============================================================
+	//在x,y,z方向分别进行规划
+	//对始末姿态采用轴角方式规划
+	xyz2r(&p_motion->pose.pose_start[3], &p_motion->pose.rot_start, 0);
+	xyz2r(&p_motion->pose.pose_end[3], &p_motion->pose.rot_end, 0);
+	//get the rotate matrix from  pose start to pose end  PB = R*PA --->R = PB*PA^-1
+	//PA^-1 = PA^T
+	matxx_transpose(&p_motion->pose.rot_start, &p_motion->pose.rot_tmp);
+	matxx_multiply(&p_motion->pose.rot_end, &p_motion->pose.rot_tmp, &p_motion->pose.rotation_matxx);
+	//-------------------------------------------------------------------
+	//calculate the axis angle
+	//-------------------------------------------------------------------
+	p_motion->pose.angle_lenth = acos(0.5*((*(p_motion->pose.rotation_matxx.point + 0))[0] + \
+		(*(p_motion->pose.rotation_matxx.point + 1))[1] + \
+		(*(p_motion->pose.rotation_matxx.point + 2))[2] - 1));
+	for (i = 0; i < dim; i++)
+	{
+		if (i < trans_dim)
+		{
+			input_0.pos = input.pos = p_motion->pose.pose_end[i] - p_motion->pose.pose_start[i];
+			input.vs = p_motion->pose.vel_start[i];
+			input.ve = p_motion->pose.vel_end[i];
+		}
+		else
+		{
+			//姿态的初末速度暂时设置为0
+			input_0.pos = input.pos = p_motion->pose.angle_lenth;
+			input.vs = 0;
+			input.ve = 0;
+
+			//-------------------------------------------------------------------
+			//计算姿态轴角的轴。
+			//-------------------------------------------------------------------
+			if (sin(p_motion->pose.angle_lenth)< MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+			{
+				//因为角度太小，轴不存在。
+				p_motion->pose.axis_angle_flag = 0;
+			}
+			else
+			{
+				p_motion->pose.axis_angle_flag = 1;
+
+				//common part ,1/(2×sin(angle))
+				theta_tmp = 1.0 / (2 * sin(p_motion->pose.angle_lenth));
+
+				//r32-r23
+				(*(p_motion->pose.axis_vector.point + 0))[0] = theta_tmp*((*(p_motion->pose.rotation_matxx.point + 1))[2] - \
+					(*(p_motion->pose.rotation_matxx.point + 2))[1]);
+				//r13-r31
+				(*(p_motion->pose.axis_vector.point + 0))[1] = theta_tmp*((*(p_motion->pose.rotation_matxx.point + 2))[0] - \
+					(*(p_motion->pose.rotation_matxx.point + 0))[2]);
+				//r21 - r12
+				(*(p_motion->pose.axis_vector.point + 0))[2] = theta_tmp*((*(p_motion->pose.rotation_matxx.point + 0))[1] - \
+					(*(p_motion->pose.rotation_matxx.point + 1))[0]);
+			}
+
+		}
+		if (fabs(input.vs) < 1E-10&&fabs(input.ve) < 1E-10)
+		{
+			motion_planning_3rd(&input_0, &profile_memory, p_motion->profile.profile_sample_time);
+		}
+		else
+		{
+			// 在始末速度不为0的梯形规划中，必须用时间缩放。时间同步方法会导致错误
+			non_zero_boundary_flag = 1;
+			sync_method = CARTLINE_TYPE_SYNC_TIME_SCALE;
+
+			if (motion_planning_nonzero(&input, &profile_memory, p_motion->profile.profile_sample_time) == -1)
+			{
+				printf("有始末速度的梯形规划失败，使用无始末速度的梯形规划\n");
+				motion_planning_3rd(&input_0, &profile_memory, p_motion->profile.profile_sample_time);
+			}
+
+		}
+		//find the id of max_T
+		if (Tmax < profile_memory.t_all_d)
+		{
+			//get the time max joint id
+			Tmax = profile_memory.t_all_d;
+			Tmax_id = i;
+		}
+
+		p_traj[i].jerk_acc = profile_memory.Jacc;
+		p_traj[i].jerk_dec = profile_memory.Jdec;
+		p_traj[i].total_interval = profile_memory.t_all_d; /* Total interval  */
+														   //------------------------------------------------------------
+														   //calculate time
+														   /*
+														   * ACC:[0 Tacc)
+														   * -ACC:[Tacc+T1 Tacc+T1+Tacc)
+														   * -DEC:[Tacc+T1+Tacc+T3 Tacc+T1+Tacc+T3+Tdec)
+														   * DEC:[Tacc+T1+Tacc+T3+Tdec+T2 Tacc+T1+Tacc+T3+Tdec+T2+Tdec)
+														   * */
+		p_traj[i].time_series[0] = 0;
+		p_traj[i].time_series[1] = (Uint32)profile_memory.t_acc_ceil;
+		p_traj[i].time_series[2] = (Uint32)(profile_memory.t_acc_ceil + profile_memory.t1_ceil);
+		p_traj[i].time_series[3] = p_traj[i].time_series[2] + (Uint32)(profile_memory.t_acc_ceil);
+		p_traj[i].time_series[4] = p_traj[i].time_series[3] + (Uint32)(profile_memory.t3_ceil);
+		p_traj[i].time_series[5] = p_traj[i].time_series[4] + (Uint32)(profile_memory.t_dec_ceil);
+		p_traj[i].time_series[6] = p_traj[i].time_series[5] + (Uint32)(profile_memory.t2_ceil);
+		p_traj[i].time_series[7] = p_traj[i].time_series[6] + (Uint32)(profile_memory.t_dec_ceil);
+		//------------------------------------------------------------
+
+		// compute initial states
+		// Jerk States corresponding to the different time
+		p_traj[i].jerk_series[0] = p_traj[i].jerk_acc;
+		p_traj[i].jerk_series[1] = 0.0;
+		p_traj[i].jerk_series[2] = -p_traj[i].jerk_acc;
+		p_traj[i].jerk_series[3] = 0.0;
+		p_traj[i].jerk_series[4] = -p_traj[i].jerk_dec;
+		p_traj[i].jerk_series[5] = 0.0;
+		p_traj[i].jerk_series[6] = p_traj[i].jerk_dec;
+		p_traj[i].jerk_series[7] = 0.0;
+
+
+		// initial states for acc, dec, vel, and pos
+		p_traj[i].acc_series[0] = 0.0;
+		p_traj[i].vel_series[0] = input.vs;
+		if (i < trans_dim)
+		{
+			p_traj[i].pos_series[0] = p_motion->pose.pose_start[i];
+		}
+		else
+		{
+			p_traj[i].pos_series[0] = 0;
+		}
+
+		for (counter = 1; counter < 8; ++counter)
+		{
+			//get time n and mutiply the sample time to get the real time
+			time_interval = p_traj[i].time_series[counter] - p_traj[i].time_series[counter - 1];
+			time_interval *= p_motion->profile.profile_sample_time;
+
+			//calculate acc
+			calculate_acceleration_from_profile(time_interval,
+				p_traj[i].jerk_series[counter - 1],
+				p_traj[i].acc_series[counter - 1],
+				&p_traj[i].acc_series[counter]);
+			//calculate vel
+			calculate_velocity_from_profile(time_interval,
+				p_traj[i].jerk_series[counter - 1],
+				p_traj[i].acc_series[counter - 1],
+				p_traj[i].vel_series[counter - 1],
+				&p_traj[i].vel_series[counter]);
+			//calculate pos
+			calculate_position_from_profile(time_interval,
+				p_traj[i].jerk_series[counter - 1],
+				p_traj[i].acc_series[counter - 1],
+				p_traj[i].vel_series[counter - 1],
+				p_traj[i].pos_series[counter - 1],
+				&p_traj[i].pos_series[counter]);
+		}
+	}
+
+	//===============================================================
+	// 通过缩放等方法使得关节轴之间或笛卡尔轴之间运动时间相同。
+	//---------------------------------------------------------------------------------------
+	//now we have know that which joint the max time ,so we use this time intervals to calculate other joint
+	//we have two methods, one is scale the time ,do not let every section time is the same as the most longest time joint
+	//---------------------------------------------------------------------------------------
+	if (sync_method == CARTLINE_TYPE_SYNC_TIME_SCALE)
+	{
+		//calculate the every joint's parameter for fitting the max T;
+		for (i = 0; i < dim; i++)
+		{
+			//假如是最大的关节，不需要再次计算
+			if (i == Tmax_id)
+			{
+				continue;
+			}
+			//假如关节不运动，获取最长执行的时间那个关节的时间
+			if (fabs(p_traj[i].total_interval) < MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+			{
+				for (counter = 0; counter < 8; ++counter)
+				{
+					//save time series
+					p_traj[i].time_series[counter] = p_traj[Tmax_id].time_series[counter];
+				}
+				continue;
+			}
+			//get the scale k
+			k = p_traj[Tmax_id].total_interval / p_traj[i].total_interval;
+			k2 = k*k;
+			k3 = k2*k;
+			// 有始末速度的梯形规划的缩放方法不同
+			if (non_zero_boundary_flag == 1)
+			{
+				// 时间缩放，时间取整
+				for (counter = 0; counter < 8; ++counter)
+				{
+					p_traj[i].time_series[counter] = floor(k*p_traj[i].time_series[counter]); //floor 与cell导致很大区别。
+				}
+				p_db = &(p_traj[i].time_series[0]);  //取地址，便于书写
+													 // 时间取整后的补偿
+				if (p_traj[i].total_interval < 1E-10)
+				{
+					return -1;
+				}
+				if (i < trans_dim)
+				{
+					pos = p_motion->pose.pose_end[i] - p_motion->pose.pose_start[i];
+					vs = p_motion->pose.vel_start[i];
+					ve = p_motion->pose.vel_end[i];
+				}
+				else
+				{
+					pos = p_motion->pose.angle_lenth;
+					vs = 0;
+					ve = 0;
+				}
+				vmax_tmp = (pos - ve * (0.5*(p_db[5] + p_db[6]) - p_db[4])*\
+							p_motion->profile.profile_sample_time - vs * 0.5*(p_db[2] + p_db[1])*\
+							p_motion->profile.profile_sample_time) / (0.5*(p_db[1] + p_db[2] + p_db[5] + p_db[6]) - p_db[3]) \
+							/ p_motion->profile.profile_sample_time;
+				if (p_db[1] < 1E-10)
+				{
+					j1_tmp = 0;
+				}
+				else
+				{
+					j1_tmp = (vmax_tmp - vs) / (p_db[1] * p_db[2] * p_motion->profile.profile_sample_time*p_motion->profile.profile_sample_time);
+				}
+				if ((p_db[5] - p_db[4])*p_motion->profile.profile_sample_time < 1E-10)
+				{
+					j2_tmp = 0;
+				}
+				else
+				{
+					j2_tmp = (vmax_tmp - ve) / ((p_db[6] - p_db[4]) * (p_db[5] - p_db[4])*p_motion->profile.profile_sample_time*p_motion->profile.profile_sample_time);
+				}
+
+				p_traj[i].jerk_series[0] = j1_tmp;
+				p_traj[i].jerk_series[1] = 0;
+				p_traj[i].jerk_series[2] = -j1_tmp;
+				p_traj[i].jerk_series[3] = 0;
+				p_traj[i].jerk_series[4] = -j2_tmp;
+				p_traj[i].jerk_series[5] = 0;
+				p_traj[i].jerk_series[6] = j2_tmp;
+				p_traj[i].jerk_series[7] = 0;
+
+				p_traj[i].acc_series[0] = 0;
+
+				if (i < trans_dim)
+				{
+					p_traj[i].vel_series[0] = p_motion->pose.vel_start[i];
+					p_traj[i].pos_series[0] = p_motion->pose.pose_start[i];
+				}
+				else
+				{
+					p_traj[i].pos_series[0] = 0;
+					p_traj[i].vel_series[0] = 0;
+				}
+
+
+				for (counter = 1; counter < 8; counter++)
+				{
+					time_interval = p_traj[i].time_series[counter] - p_traj[i].time_series[counter - 1];
+					time_interval *= p_motion->profile.profile_sample_time;
+					// acc
+					calculate_acceleration_from_profile_(time_interval, \
+						p_traj[i].jerk_series[counter - 1], \
+						p_traj[i].acc_series[counter - 1], \
+						&p_traj[i].acc_series[counter]);
+					// vel
+					calculate_velocity_from_profile_(time_interval, \
+						p_traj[i].jerk_series[counter - 1], \
+						p_traj[i].acc_series[counter - 1], \
+						p_traj[i].vel_series[counter - 1], \
+						&p_traj[i].vel_series[counter]);
+					// pos
+					calculate_position_from_profile_(time_interval, \
+						p_traj[i].jerk_series[counter - 1], \
+						p_traj[i].acc_series[counter - 1], \
+						p_traj[i].vel_series[counter - 1], \
+						p_traj[i].pos_series[counter - 1], \
+						&p_traj[i].pos_series[counter]);
+				}
+
+			}
+			else
+			{
+				//according to the scale k to update other joint profiles,do not calculate again,just update
+				for (counter = 0; counter < 8; ++counter)
+				{
+					p_traj[i].time_series[counter] = ceil(k*p_traj[i].time_series[counter]);
+					p_traj[i].jerk_series[counter] /= (k3);
+					p_traj[i].acc_series[counter] /= (k2);
+					p_traj[i].vel_series[counter] /= (k);
+					//pos do not change
+				}
+			}
+			p_traj[i].total_interval = p_traj[Tmax_id].total_interval;
+			//now counter is 8,强制最后一段时间和时间最长的那个关节一致。
+			p_traj[i].time_series[counter - 1] = p_traj[Tmax_id].time_series[counter - 1];
+		}
+	}
+	else if (sync_method == CARTLINE_TYPE_SYNC_TIME_SAME)
+	{
+		//calculate the every joint's parameter for fitting the max T;
+		for (i = 0; i < dim; i++)
+		{
+			if (i == Tmax_id)
+			{
+				continue;
+			}
+			if (fabs(p_traj[i].total_interval) < MOTION_MODULE_CONSTANT_MIN_POSITIVE)
+			{
+				for (counter = 0; counter < 8; ++counter)
+				{
+					//save time series
+					p_traj[i].time_series[counter] = p_traj[Tmax_id].time_series[counter];
+				}
+				continue;
+			}
+			// t1 	= t(2) - t(1);
+			// t11  = t(3) - t(2) = t(1)- t(0);
+			// t3 	= t(4) - t(3);
+			// t2 	= t(6) - t(5);
+			// t22  = t(7) - t(6) = t(5)- t(4);
+
+			// Vmax = pos / (t11 + 1/2 * t1 + t22 + 1/2 * t2 + t3)*sampletime
+			if (i < trans_dim)
+			{
+				pos = p_motion->pose.pose_end[i] - p_motion->pose.pose_start[i];
+			}
+			else
+			{
+				pos = p_motion->pose.angle_lenth;
+			}
+			vmax_tmp = pos / ((p_traj[Tmax_id].time_series[1] + \
+				p_traj[Tmax_id].time_series[5] - p_traj[Tmax_id].time_series[4] + \
+				0.5*(p_traj[Tmax_id].time_series[2] - p_traj[Tmax_id].time_series[1] + \
+					p_traj[Tmax_id].time_series[6] - p_traj[Tmax_id].time_series[5]) + \
+				p_traj[Tmax_id].time_series[4] - p_traj[Tmax_id].time_series[3])* \
+				p_motion->profile.profile_sample_time);
+			//-------------------------------------------------------------------------------------------
+			// J1 = Vmax / ((t11^2 + t1 * t11)*Ts^2);
+			// J2 = Vmax / ((t22^2 + t2 * t22)*Ts^2);
+			//calculate jerk series
+			p_traj[i].jerk_series[0] = vmax_tmp / (p_traj[Tmax_id].time_series[1] * \
+				p_traj[Tmax_id].time_series[2] * \
+				p_motion->profile.profile_sample_time* \
+				p_motion->profile.profile_sample_time);
+
+			p_traj[i].jerk_series[1] = 0.0;
+
+			p_traj[i].jerk_series[2] = -p_traj[i].jerk_series[0];
+
+			p_traj[i].jerk_series[3] = 0.0;
+
+			p_traj[i].jerk_series[4] = -vmax_tmp / ((p_traj[Tmax_id].time_series[5] - \
+				p_traj[Tmax_id].time_series[4])* \
+				(p_traj[Tmax_id].time_series[6] - \
+					p_traj[Tmax_id].time_series[4])* \
+				p_motion->profile.profile_sample_time* \
+				p_motion->profile.profile_sample_time);
+
+			p_traj[i].jerk_series[5] = 0.0;
+
+			p_traj[i].jerk_series[6] = -p_traj[i].jerk_series[4];
+
+			p_traj[i].jerk_series[7] = 0.0;
+
+
+			// initial states for acc, dec, vel, and pos
+			p_traj[i].acc_series[0] = 0.0;
+			p_traj[i].vel_series[0] = 0.0;
+			if (i < trans_dim)
+			{
+				p_traj[i].pos_series[0] = p_motion->pose.pose_start[i];
+			}
+			else
+			{
+				p_traj[i].pos_series[0] = 0;
+			}
+
+			for (counter = 1; counter < 8; ++counter)
+			{
+				//save time series
+				p_traj[i].time_series[counter - 1] = p_traj[Tmax_id].time_series[counter - 1];
+				//get time interval
+				time_interval = p_traj[Tmax_id].time_series[counter] - p_traj[Tmax_id].time_series[counter - 1];
+				time_interval *= p_motion->profile.profile_sample_time;
+
+				//calculate acc series
+				calculate_acceleration_from_profile(time_interval,
+					p_traj[i].jerk_series[counter - 1],
+					p_traj[i].acc_series[counter - 1],
+					&p_traj[i].acc_series[counter]);
+				//calculate vel series
+				calculate_velocity_from_profile(time_interval,
+					p_traj[i].jerk_series[counter - 1],
+					p_traj[i].acc_series[counter - 1],
+					p_traj[i].vel_series[counter - 1],
+					&p_traj[i].vel_series[counter]);
+				//caculate pose series
+				calculate_position_from_profile(time_interval,
+					p_traj[i].jerk_series[counter - 1],
+					p_traj[i].acc_series[counter - 1],
+					p_traj[i].vel_series[counter - 1],
+					p_traj[i].pos_series[counter - 1],
+					&p_traj[i].pos_series[counter]);
+			}
+			//now counter is 8
+			p_traj[i].time_series[counter - 1] = p_traj[Tmax_id].time_series[counter - 1];
+			p_traj[i].total_interval = p_traj[Tmax_id].total_interval;
+		}
+	}
+	else
+	{
+		//@@@@ 后续处理
+		return -1;
+	}
+
+	p_motion->state = TRAJECTORY_MODULE_MOTION_BLOCK_STATE_RUNNING;
+	return;
+}
 //----------------------------------------------------------------------------------------
 void calculate_motion_parameters(robot_config_module* m_cfg, motion_block* p_motion)
 {
@@ -2793,6 +3262,7 @@ int16 InsertNewMotionBlock(trajectory_module *m_traj, robot_config_module* 	p_co
 	}
 	return 0;
 }
+
 //----------------------------------------------------------------------------------------
 int16 TrajectoryGenerator(trajectory_module* p_trajectory, cartesian_module* p_cart, joint_module* p_joint, robot_config_module* p_config, Uint8 id)
 {

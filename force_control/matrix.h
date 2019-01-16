@@ -148,4 +148,12 @@ void rotz(double var_deg, matxx* T);
 
 void transz(double d_mm, matxx* T);
 
+int16 zyz2r(double* zyz, matxx* R);
+
+int16 r2zyz(matxx* R, double* zyz);
+
+int16 zyz2xyz(double* zyz, double* xyz);
+
+int16 xyz2zyz(double* xyz, double* zyz);
+
 #endif /* ROBOT_CONTROL_MATH_INCLUDE_MATRIX_H_ */

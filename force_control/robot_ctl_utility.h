@@ -116,7 +116,6 @@
 #define ROBOT_MODULE_ERROR_ID							(0x0003 << MOTION_MODULE_ERROR_BIT_SHFIT)
 #define TRAJECTORY_MODULE_ERROR_ID  					(0x0004 << MOTION_MODULE_ERROR_BIT_SHFIT)
 
-
 //----------------------------------------------------------------------
 
 #endif /* ROBOT_CONTROL_UTILITY_INCLUDE_ROBOT_CTL_UTILITY_H_ */

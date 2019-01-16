@@ -1770,7 +1770,7 @@ void calculate_position_from_profile_(double t,
 // motion planning with v0 and ve
 // Acc=Dec,Tacc=Tdec;对称的梯形规划。某些文献中也叫s型曲线
 
-int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNING_3RD* m_mp3rd, motion_trajectory_nonzero* motion_tra, double sample_time)
+int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNING_3RD* m_mp3rd, double sample_time)
 {
 	int8		error_flag = 0;
 	int8		reverse_flag = 0;
@@ -1786,8 +1786,7 @@ int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNI
 
 						  //var
 	double		Acc2invJ = Acc*Acc / J;
-	double		T[8] = { 0,0,0,0,0,0,0 };  // unit s
-	double		T_[8] = { 0,0,0,0,0,0,0 };  // unit ms
+	double		T[7] = { 0,0,0,0,0,0,0 };  // unit s
 	double		vm = 0;
 	double		J1 = 0;
 	double		J2 = 0;
@@ -1844,7 +1843,7 @@ int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNI
 	{
 		if (vs < ve)
 		{
-			L_a = DisplacemenInDeltaV(vs, ve - vs, Acc, J);  // 直接加速所需位移，加速度曲线一个梯形或三角形
+			L_a = DisplacemenInDeltaV(vs, ve - vs, Acc, J);  // 与直接加速所需位移相比较
 			if (s - L_a < input->secant_eps)
 			{
 				dec_first = 1;  // 需要先减速后加速
@@ -1857,7 +1856,7 @@ int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNI
 		}
 		else
 		{
-			L_a = DisplacemenInDeltaV(ve, vs - ve, Acc, J);  // 直接减速所需位移，加速度曲线一个梯形或三角形
+			L_a = DisplacemenInDeltaV(ve, vs - ve, Acc, J);  // 与直接减速所需位移相比较
 			if (s - L_a < input->secant_eps)
 			{
 				dec_first = 2;  // 需要先减速后加速
@@ -1966,10 +1965,10 @@ int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNI
 	T[4] = floor(input->scale*T[4] / sample_time)*sample_time;
 	T[5] = floor(input->scale*T[5] / sample_time)*sample_time;
 	T[6] = floor(input->scale*T[6] / sample_time)*sample_time;
-	T[7] = floor(input->scale*T[7] / sample_time)*sample_time;
+
 
 	// 时间取整后的补偿
-	if (T[0] + T[1] + T[2] + T[3] + T[4] + T[5] + T[6] + T[7] < 1E-10)
+	if (T[0] + T[1] + T[2] + T[3] + T[4] + T[5] + T[6] < 1E-10)
 	{
 		return -1;
 	}
@@ -1991,50 +1990,74 @@ int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNI
 		J2 = (vm - ve) / (T[4] * T[4] + T[4] * T[5]);
 	}
 
-	motion_tra->jerk_series[0] = J1;
-	motion_tra->jerk_series[1] = 0;
-	motion_tra->jerk_series[2] = -J1;
-	motion_tra->jerk_series[3] = 0;
-	motion_tra->jerk_series[4] = -J2;
-	motion_tra->jerk_series[5] = 0;
-	motion_tra->jerk_series[6] = J2;
-	motion_tra->jerk_series[7] = 0;
-	motion_tra->acc_series[0] = 0;
-	motion_tra->vel_series[0] = vs;
-	motion_tra->pos_series[0] = 0;
+	// v1.0
+	//motion_tra->jerk_series[0] = J1;
+	//motion_tra->jerk_series[1] = 0;
+	//motion_tra->jerk_series[2] = -J1;
+	//motion_tra->jerk_series[3] = 0;
+	//motion_tra->jerk_series[4] = -J2;
+	//motion_tra->jerk_series[5] = 0;
+	//motion_tra->jerk_series[6] = J2;
+	//motion_tra->jerk_series[7] = 0;
+	//motion_tra->acc_series[0]  = 0;
+	//motion_tra->vel_series[0]  = vs;
+	//motion_tra->pos_series[0]  = 0;
 
-	for (counter = 1; counter < 8; counter++)
-	{
-		// acc
-		calculate_acceleration_from_profile_(T[counter - 1], \
-			motion_tra->jerk_series[counter - 1], \
-			motion_tra->acc_series[counter - 1], \
-			&motion_tra->acc_series[counter]);
-		// vel
-		calculate_velocity_from_profile_(T[counter - 1], \
-			motion_tra->jerk_series[counter - 1], \
-			motion_tra->acc_series[counter - 1], \
-			motion_tra->vel_series[counter - 1], \
-			&motion_tra->vel_series[counter]);
-		// pos
-		calculate_position_from_profile_(T[counter - 1], \
-			motion_tra->jerk_series[counter - 1], \
-			motion_tra->acc_series[counter - 1], \
-			motion_tra->vel_series[counter - 1], \
-			motion_tra->pos_series[counter - 1], \
-			&motion_tra->pos_series[counter]);
-	}
+	m_mp3rd->Jacc			   = J1;
+	m_mp3rd->Jdec			   = J2;
+	
+	m_mp3rd->t_acc_ceil_d	   = T[0];
+	m_mp3rd->t1_ceil_d		   = T[1];
+	m_mp3rd->t_acc_ceil_d	   = T[2];
+	m_mp3rd->t3_ceil_d		   = T[3];
+	m_mp3rd->t_dec_ceil_d	   = T[4];
+	m_mp3rd->t2_ceil_d		   = T[5];
+	m_mp3rd->t_dec_ceil_d	   = T[6];
+	m_mp3rd->t_all_d		   = T[0] + T[1] + T[2] + T[3] + T[4] + T[5] + T[6];
+
+	m_mp3rd->t_acc_ceil	       = T[0] / sample_time;
+	m_mp3rd->t1_ceil		   = T[1] / sample_time;
+	m_mp3rd->t_acc_ceil		   = T[2] / sample_time;
+	m_mp3rd->t3_ceil		   = T[3] / sample_time;
+	m_mp3rd->t_dec_ceil		   = T[4] / sample_time;
+	m_mp3rd->t2_ceil		   = T[5] / sample_time;
+	m_mp3rd->t_dec_ceil		   = T[6] / sample_time;
+	m_mp3rd->t_all			   = m_mp3rd->t_all_d / sample_time;
+
+	//for (counter = 1; counter < 8; counter++)
+	//{
+	//	// acc
+	//	calculate_acceleration_from_profile_(T[counter - 1], \
+	//		motion_tra->jerk_series[counter - 1], \
+	//		motion_tra->acc_series[counter - 1], \
+	//		&motion_tra->acc_series[counter]);
+	//	// vel
+	//	calculate_velocity_from_profile_(T[counter - 1], \
+	//		motion_tra->jerk_series[counter - 1], \
+	//		motion_tra->acc_series[counter - 1], \
+	//		motion_tra->vel_series[counter - 1], \
+	//		&motion_tra->vel_series[counter]);
+	//	// pos
+	//	calculate_position_from_profile_(T[counter - 1], \
+	//		motion_tra->jerk_series[counter - 1], \
+	//		motion_tra->acc_series[counter - 1], \
+	//		motion_tra->vel_series[counter - 1], \
+	//		motion_tra->pos_series[counter - 1], \
+	//		&motion_tra->pos_series[counter]);
+	//}
 
 
 	if (reverse_flag == 1)
 	{
-		for (counter = 0; counter < 8; counter++)
-		{
-			motion_tra->jerk_series[counter] = -motion_tra->jerk_series[counter];
-			motion_tra->acc_series[counter] = -motion_tra->acc_series[counter];
-			motion_tra->vel_series[counter] = -motion_tra->vel_series[counter];
-			motion_tra->pos_series[counter] = -motion_tra->pos_series[counter];
-		}
+		//for (counter = 0; counter < 8; counter++)
+		//{
+		//	motion_tra->jerk_series[counter] = -motion_tra->jerk_series[counter];
+		//	motion_tra->acc_series[counter] = -motion_tra->acc_series[counter];
+		//	motion_tra->vel_series[counter] = -motion_tra->vel_series[counter];
+		//	motion_tra->pos_series[counter] = -motion_tra->pos_series[counter];
+		//}
+		m_mp3rd->Jacc = -m_mp3rd->Jacc;
+		m_mp3rd->Jdec = -m_mp3rd->Jdec;
 	}
 
 
@@ -2103,3 +2126,4 @@ int16 NewTonSecantMethodToFindRoot(double x0,double x1,double s,double vs,double
 
 	return 0;
 }
+

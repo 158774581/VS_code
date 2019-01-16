@@ -188,7 +188,7 @@ double DisplacemenInDeltaV(double v, double dv, double Acc, double J);
 
 int16 NewTonSecantMethodToFindRoot(double x0, double x1, double s, double vs, double ve, double Acc, double J, double eps, int16 max_iter, double* root);
 
-int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNING_3RD* m_mp3rd, motion_trajectory_nonzero* motion_tra, double sample_time);
+int16 motion_planning_nonzero(MOTION_PLANNING_NON_ZERO_PRM* input, MOTION_PLANNING_3RD* m_mp3rd, double sample_time);
 //----------------------------------------------------------------------------------------------------
 
 #endif /* ROBOT_CONTROL_MOTION_PLANNING_INCLUDE_MOTION_PLANNING_3RD_H_ */

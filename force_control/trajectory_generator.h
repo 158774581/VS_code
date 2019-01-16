@@ -158,6 +158,8 @@ typedef struct
 	double    pose_unit_vector[6];						//unit vector
 	double    arc_length;								//path lenth(line or arc)
 	double 	  arc_lenth_trans;
+	double    vel_start[8];								// for both joint and cart
+	double    vel_end[8];								// for both joint and cart
 	//--------------------------------------------
 	//axis angle presentation
 	matxx	 axis_vector;								//axis presentation 3*1 matrix,use for pose ,angle-axis presentation
@@ -248,6 +250,7 @@ typedef struct
 	motion_trajectory   	 	traj_cart_rot;  								//this used for  cartesian rotate trajectory
 	motion_trajectory			traj_joint[JOINT_COORDINATE_NUM];				//this used for every joint trajectory
 
+	motion_trajectory			traj_cart_xyz_poseture[4];						// 在x,y,z方向分别进行运动规划，姿态用轴角进行规划
 																				//---------------------------------------------------------------------
 	Uint8						delay_enable;  									// 1: enable, 0:disable ,the delay is before this block run.
 																				// if this block need blending ,disable delay and let delay_enable=0
@@ -274,6 +277,8 @@ typedef struct TRAJECTORY_MODULE
 
 	double 			 motion_profile[6];
 	double			 prf_cart_rot[6];
+
+	double			 period_time;
 	//---------------------------------------------------------------
 	// function pointer define
 	int16(*pfInitTrajectoryModule)(struct TRAJECTORY_MODULE * m_traj, robot_config_module *p_config, Uint8 id);	//trajectory module initialization
@@ -309,6 +314,12 @@ int16  TrajectoryGenerator(trajectory_module* p_trajectory, cartesian_module* p_
 void calculate_acceleration_from_profile(double t, double jerk, double acc_init, double* acc_t);
 void calculate_velocity_from_profile(double t, double jerk, double acc_init, double vel_init, double* vel_t);
 void calculate_position_from_profile(double t, double jerk, double acc_init, double vel_init, double pos_init, double* pos_t);
+
+void calculate_motion_profile_of_cnv_rbt(motion_block* p_motion, Uint8 type, Uint8 sync_method);
+
+motion_block* get_last_motion_block(const motion_block* buffer, const motion_block* current);
+
+motion_block* get_next_motion_block(const motion_block* buffer, const motion_block* current);
 //---------------------------------------------------------------------------
 
 #endif /* TRAJECTORY_GENERATOR_H_ */

@@ -1172,7 +1172,7 @@ int16 zyz2r(double* zyz, matxx* R)
 	R->point[2][1] = sa*sb;
 	R->point[2][2] = cb;
 
-	return;
+	return 0;
 }
 int16 zyz2xyz(double* zyz,double* xyz)
 {
@@ -1437,4 +1437,75 @@ void transz(double d_mm, matxx* T)
 	T->point[3][3] = 1;
 
 	return;
+}
+
+int16 r2zyz(matxx* R, double* zyz)
+{
+	double sb = 0;
+	zyz[1] = atan2(pow(pow(R->point[0][2], 2) + pow(R->point[1][2], 2), 0.5), R->point[2][2]);
+	sb = sin(zyz[1]);
+	if (fabs(sb)<1E-10)
+	{
+		zyz[1] = 0.0;
+		zyz[0] = 0;
+		zyz[2] = atan2(-R->point[1][0], R->point[0][0]);
+	}
+	else
+	{
+		zyz[0] = atan2(R->point[2][1] / sb, R->point[2][0] / sb);
+		zyz[2] = atan2(R->point[1][2] / sb, -R->point[0][2] / sb);
+	}
+	zyz[0] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+	zyz[1] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+	zyz[2] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+
+	return 0;
+}
+
+int16 xyz2zyz(double* xyz, double* zyz)
+{
+	double sr, cr, sa, ca, sb, cb;
+	double tmp[3];
+	double R[3][3];
+
+	tmp[0] = xyz[0] * MOTION_MODULE_UNIT_TRANSFORM_DEGREE_2_RAD;
+	tmp[1] = xyz[1] * MOTION_MODULE_UNIT_TRANSFORM_DEGREE_2_RAD;
+	tmp[2] = xyz[2] * MOTION_MODULE_UNIT_TRANSFORM_DEGREE_2_RAD;
+
+	sr = sin(tmp[0]);
+	sb = sin(tmp[1]);
+	sa = sin(tmp[2]);
+	cr = cos(tmp[0]);
+	cb = cos(tmp[1]);
+	ca = cos(tmp[2]);
+
+	R[0][0] = ca*cb;
+	R[0][1] = sa*cb;
+	R[0][2] = -sb;
+
+	R[1][0] = ca*sb*sr - sa*cr;
+	R[1][1] = sa*sb*sr + ca*cr;
+	R[1][2] = cb*sr;
+
+	R[2][0] = ca*sb*cr + sa*sr;
+	R[2][1] = sa*sb*cr - ca*sr;
+	R[2][2] = cb*cr;
+
+	zyz[1] = atan2(pow(pow(R[0][2], 2) + pow(R[1][2], 2), 0.5), R[2][2]);
+	sb = sin(zyz[1]);
+	if (fabs(sb)<1E-10)
+	{
+		zyz[1] = 0.0;
+		zyz[0] = 0;
+		zyz[2] = atan2(-R[1][0], R[0][0]);
+	}
+	else
+	{
+		zyz[0] = atan2(R[2][1] / sb, R[2][0] / sb);
+		zyz[2] = atan2(R[1][2] / sb, -R[0][2] / sb);
+	}
+	zyz[0] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+	zyz[1] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+	zyz[2] *= MOTION_MODULE_UNIT_TRANSFORM_RAD_2_DEGREE;
+	return 0;
 }
